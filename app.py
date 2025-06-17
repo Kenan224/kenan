@@ -1100,7 +1100,7 @@ def main():
                 st.markdown(f"""
                 <div class="performance-metric">
                     <div class="metric-label">⚡ коэффициент k₂</div>
-                    <div class="metric-value">{k2:.5f} л/(мг·мин)</div>
+                    <div class="metric-value">{k2:.5f} мин⁻¹</div>
                 </div>
                 """, unsafe_allow_html=True)
                 st.markdown(f"""

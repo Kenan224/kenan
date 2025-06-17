@@ -164,7 +164,7 @@ def create_results_summary(k1: float, k2: float, mape_pfo: float, mape_pso: floa
         'Модель': ['PFO', 'PSO'],
         'Параметры': [
             f'k₁ = {abs(k1):.5f} мин⁻¹',
-            f'k₂ = {k2:.5f} л/(мг·мин)'
+            f'k₂ = {k2:.5f} мин⁻¹'
         ],
         'R²': [r2_pfo, r2_pso],
         'MAPE (%)': [mape_pfo, mape_pso]

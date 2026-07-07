@@ -534,6 +534,39 @@ def main():
             fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
             st.pyplot(fig_main)
 
+          # ========================================================
+            # أولاً: أزرار تحميل وطباعة الجرافيكات (توضع قبل زر الإكسل)
+            # ========================================================
+            col_img1, col_img2 = st.columns(2)
+            
+            with col_img1:
+                # حفظ الرسم البياني كصورة عالية الدقة PNG (300 DPI مناسبة جداً للطباعة)
+                png_buffer = BytesIO()
+                fig_main.savefig(png_buffer, format='png', dpi=300, bbox_inches='tight')
+                png_buffer.seek(0)
+                
+                st.download_button(
+                    label="📥 تحميل الرسوم البيانية كصورة عالية الجودة (PNG)",
+                    data=png_buffer,
+                    file_name="kinetic_plots_300dpi.png",
+                    mime="image/png"
+                )
+                
+            with col_img2:
+                # حفظ الرسم البياني بصيغة PDF (صيغة متجهة Vector لا تفقد دقتها عند التكبير والطباعة)
+                pdf_buffer = BytesIO()
+                fig_main.savefig(pdf_buffer, format='pdf', bbox_inches='tight')
+                pdf_buffer.seek(0)
+                
+                st.download_button(
+                    label="📄 تحميل الرسوم البيانية بصيغة PDF للطباعة الرقمية",
+                    data=pdf_buffer,
+                    file_name="kinetic_plots_vector.pdf",
+                    mime="application/pdf"
+                )
+            # ========================================================
+
+            # ثانياً: الكود الخاص بك لتحميل ملف الـ Excel (الذي أرسلته لي)
             st.markdown("""
             <div class="section-header-download">
                 <h2>💾 Скачать результаты</h2>
@@ -555,7 +588,7 @@ def main():
                     data.to_excel(writer, sheet_name=sheet_name, index=False)
 
             st.download_button(
-                label="Скачать результаты как файл Excel",
+                label="Скачать результаты как ملف Excel",
                 data=output.getvalue(),
                 file_name="kinetic_modeling_results.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

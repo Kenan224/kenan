@@ -273,13 +273,13 @@ def main():
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.markdown('<p class="model-title">🟣 Модель ZO</p>', unsafe_allow_html=True)
+                    st.markdown('<p class="model-title">🔵 Модель ZO</p>', unsafe_allow_html=True)
                     st.markdown(f'<div class="performance-metric">⚡ k₀ = {abs(k0):.5f}</div><div class="performance-metric">📊 R² = {r2_zo:.4f}</div><div class="performance-metric">📈 MAPE = {mape_zo:.2f}%</div>', unsafe_allow_html=True)
                 with col2:
-                    st.markdown('<p class="model-title">🔵 Модель PFO</p>', unsafe_allow_html=True)
+                    st.markdown('<p class="model-title">🟢 Модель PFO</p>', unsafe_allow_html=True)
                     st.markdown(f'<div class="performance-metric">⚡ k₁ = {abs(k1):.5f}</div><div class="performance-metric">📊 R² = {r2_pfo:.4f}</div><div class="performance-metric">📈 MAPE = {mape_pfo:.2f}%</div>', unsafe_allow_html=True)
                 with col3:
-                    st.markdown('<p class="model-title">🟢 Модель PSO</p>', unsafe_allow_html=True)
+                    st.markdown('<p class="model-title">🟣 Модель PSO</p>', unsafe_allow_html=True)
                     st.markdown(f'<div class="performance-metric">⚡ k₂ = {k2:.5f}</div><div class="performance-metric">📊 R² = {r2_pso:.4f}</div><div class="performance-metric">📈 MAPE = {mape_pso:.2f}%</div>', unsafe_allow_html=True)
 
                 st.markdown('<div class="section-header-visualization"><h2>📊 Графики</h2></div>', unsafe_allow_html=True)

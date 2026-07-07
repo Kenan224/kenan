@@ -54,6 +54,7 @@ st.markdown("""
     margin: 0;
     font-weight: 600;
     font-size: 2.2rem;
+    color: white !important;
 }
 
 .info-card {
@@ -63,13 +64,6 @@ st.markdown("""
     margin-bottom: 1.5rem;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
-}
-
-/* تحسين وضوح نصوص العناوين الجانبية للموديلات */
-.model-title {
-    color: #1e293b !important;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
 }
 
 .performance-metric {
@@ -105,7 +99,43 @@ st.markdown("""
 .section-header-visualization { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #7c3aed; padding: 1rem; border-radius: 10px; border-left: 5px solid #a855f7; margin-bottom: 1rem; }
 .section-header-download { background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%); color: #7f1d1d; padding: 1rem; border-radius: 10px; border-left: 5px solid #ef4444; margin-bottom: 1rem; }
 
+.section-header-data h2, .section-header-results h2, .section-header-analysis h2, .section-header-visualization h2, .section-header-download h2 {
+    color: inherit !important;
+    margin: 0;
+}
+
 .highlight-success { background: #dcfce7; border: 1px solid #22c55e; border-radius: 12px; padding: 1rem; margin: 1rem 0; color: #14532d; }
+
+/* ========================================================================= */
+/* 🛠️ الكود المضاف لإصلاح ألوان النصوص وجعلها داكنة وواضحة جداً فوق الخلفية الفاتحة */
+/* ========================================================================= */
+
+/* نصوص الماركداون العادية والخط العريض */
+.main div[data-testid="stMarkdownContainer"] p, 
+.main div[data-testid="stMarkdownContainer"] span,
+.main div[data-testid="stMarkdownContainer"] strong,
+.main div[data-testid="stMarkdownContainer"] li {
+    color: #1e293b !important;
+}
+
+/* نصوص أدوات إدخال البيانات، العناوين الجانبية للراديو والقوائم */
+.main label, 
+.main div[data-testid="stWidgetLabel"] p,
+.main div[data-testid="stSelectionBoxes"] p {
+    color: #1e293b !important;
+}
+
+/* نصوص الخيارات الداخلية عند اختيار الراديو بوتون (مثل نصوص أسماء الموديلات ZO, PFO, PSO) */
+.main div[data-testid="stRadio"] div[role="radiogroup"] label p {
+    color: #1e293b !important;
+    font-weight: 500 !important;
+}
+
+/* العناوين الداخلية الفرعية */
+.main h3 {
+    color: #0f172a !important;
+}
+/* ========================================================================= */
 </style>
 """, unsafe_allow_html=True)
 

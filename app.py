@@ -512,13 +512,13 @@ def main():
 
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.markdown("### 🟣 Модель ZO")
+                st.markdown("### 🔵 Модель ZO")
                 st.markdown(f'<div class="performance-metric"><div class="metric-label">⚡ k₀</div><div class="metric-value">{abs(k0):.5f}</div></div><div class="performance-metric"><div class="metric-label">📊 R²</div><div class="metric-value">{r2_zo:.4f}</div></div><div class="performance-metric"><div class="metric-label">📈 MAPE</div><div class="metric-value">{mape_zo:.2f}%</div></div>', unsafe_allow_html=True)
             with col2:
-                st.markdown("### 🔵 Модель PFO")
+                st.markdown("### 🟢 Модель PFO")
                 st.markdown(f'<div class="performance-metric"><div class="metric-label">⚡ k₁</div><div class="metric-value">{abs(k1):.5f}</div></div><div class="performance-metric"><div class="metric-label">📊 R²</div><div class="metric-value">{r2_pfo:.4f}</div></div><div class="performance-metric"><div class="metric-label">📈 MAPE</div><div class="metric-value">{mape_pfo:.2f}%</div></div>', unsafe_allow_html=True)
             with col3:
-                st.markdown("### 🟢 Модель PSO")
+                st.markdown("### 🟣 Модель PSO")
                 st.markdown(f'<div class="performance-metric"><div class="metric-label">⚡ k₂</div><div class="metric-value">{k2:.5f}</div></div><div class="performance-metric"><div class="metric-label">📊 R²</div><div class="metric-value">{r2_pso:.4f}</div></div><div class="performance-metric"><div class="metric-label">📈 MAPE</div><div class="metric-value">{mape_pso:.2f}%</div></div>', unsafe_allow_html=True)
 
             with st.expander("Подробные результаты"):

@@ -534,15 +534,13 @@ def main():
             fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
             st.pyplot(fig_main)
        # ========================================================
-            # أولاً: زر تحميل الجرافيك بصيغة PNG فقط باللغة الروسية
-            # ========================================================
-            # حفظ الرسم البياني كصورة عالية الدقة PNG (300 DPI مناسبة جداً للطباعة)
+            # أولاً: زر تحميل الجرافيك   
             png_buffer = BytesIO()
             fig_main.savefig(png_buffer, format='png', dpi=300, bbox_inches='tight')
             png_buffer.seek(0)
             
             st.download_button(
-                label="📥 Скачать графики в высоком разрешении (PNG)",
+                label="📥 Скачать графики в формате PNG",
                 data=png_buffer,
                 file_name="kinetic_plots_300dpi.png",
                 mime="image/png"

@@ -564,9 +564,23 @@ def main():
                     file_name="kinetic_plots_vector.pdf",
                     mime="application/pdf"
                 )
+       # ========================================================
+            # أولاً: زر تحميل الجرافيك بصيغة PNG فقط باللغة الروسية
+            # ========================================================
+            # حفظ الرسم البياني كصورة عالية الدقة PNG (300 DPI مناسبة جداً للطباعة)
+            png_buffer = BytesIO()
+            fig_main.savefig(png_buffer, format='png', dpi=300, bbox_inches='tight')
+            png_buffer.seek(0)
+            
+            st.download_button(
+                label="📥 Скачать графики в высоком разрешении (PNG)",
+                data=png_buffer,
+                file_name="kinetic_plots_300dpi.png",
+                mime="image/png"
+            )
             # ========================================================
 
-            # ثانياً: الكود الخاص بك لتحميل ملف الـ Excel (الذي أرسلته لي)
+            # ثانياً: الكود الخاص بك لتحميل ملف الـ Excel
             st.markdown("""
             <div class="section-header-download">
                 <h2>💾 Скачать результаты</h2>
@@ -588,7 +602,7 @@ def main():
                     data.to_excel(writer, sheet_name=sheet_name, index=False)
 
             st.download_button(
-                label="Скачать результаты как ملف Excel",
+                label="Скачать результаты как файл Excel",
                 data=output.getvalue(),
                 file_name="kinetic_modeling_results.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

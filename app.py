@@ -114,7 +114,7 @@ st.markdown("""
     margin-bottom: 0.5rem;
 }
 
-/* Target specific streamlit widgets safely to prevent white-on-white text */
+/* Target specific streamlit widgets safely to prevent white-on-white text in MAIN page */
 div[data-testid="stRadio"] label p,
 div[data-testid="stSelectbox"] label p,
 div[data-testid="stWidgetLabel"] p,
@@ -123,9 +123,30 @@ div[data-testid="stMarkdownContainer"] h3 {
     color: #1e293b !important;
     font-weight: 500 !important;
 }
+
+/* 🛠️ إصلاح القائمة الجانبية (Sidebar) ذات الخلفية السوداء */
+/* تحويل جميع النصوص العادية والقوائم داخل الـ Sidebar إلى اللون الأبيض الناصع */
+section[data-testid="stSidebar"] p, 
+section[data-testid="stSidebar"] li, 
+section[data-testid="stSidebar"] span, 
+section[data-testid="stSidebar"] label {
+    color: #ffffff !important;
+}
+
+/* تحويل العناوين الرئيسية (h1, h2) داخل الـ Sidebar إلى اللون الأبيض */
+section[data-testid="stSidebar"] h1, 
+section[data-testid="stSidebar"] h2 {
+    color: #ffffff !important;
+}
+
+/* جعل عنوان "📋 Требования к файлу" (h3) بلون أصفر/برتقالي فاتح ومميز ليكون واضحاً جداً وجذاباً */
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] h3 {
+    color: #fde68a !important;
+    font-weight: 600 !important;
+}
 </style>
 """, unsafe_allow_html=True)
-
 
 def main():
     st.markdown("""

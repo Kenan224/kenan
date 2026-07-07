@@ -1,5 +1,5 @@
 """
-Kinetic modeling functions for PFO and PSO analysis.
+Kinetic modeling functions for ZO, PFO and PSO analysis.
 """
 
 import numpy as np
@@ -57,6 +57,21 @@ def find_stable_points(y: pd.Series, t: pd.Series, threshold: float = 0.1) -> Li
     return stable_indices
 
 
+def zo_model(t: np.ndarray, k0: float, A0: float) -> np.ndarray:
+    """
+    Zero Order kinetic model: A = A0 - k0 * t
+
+    Args:
+        t: Time array
+        k0: Zero-order rate constant
+        A0: Initial concentration
+
+    Returns:
+        Predicted A values
+    """
+    return A0 - k0 * t
+
+
 def pfo_model(t: np.ndarray, k1: float) -> np.ndarray:
     """
     Pseudo-First Order kinetic model: ln(A/A0) = -k1 * t
@@ -84,6 +99,37 @@ def pso_model(t: np.ndarray, k2: float, A0: float) -> np.ndarray:
         Predicted 1/A values
     """
     return (1 / A0) + k2 * t
+
+
+def fit_zo_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, float, float]:
+    """
+    Fit the Zero Order model to the selected data.
+
+    Args:
+        selected_data: DataFrame with selected stable points
+
+    Returns:
+        Tuple of (k0, predictions_df, mape, r2)
+    """
+    A0 = selected_data.iloc[0]['А']
+
+    # Create a partial function with A0 fixed
+    def zo_model_partial(t, k0):
+        return zo_model(t, k0, A0)
+
+    # Fit the ZO model
+    zo_params, _ = curve_fit(zo_model_partial, selected_data['т, мин'], selected_data['А'])
+    k0 = zo_params[0]
+
+    # Calculate predictions
+    predictions = selected_data.copy()
+    predictions['ZO_pred'] = zo_model(selected_data['т, мин'], k0, A0)
+
+    # Calculate metrics
+    mape = mean_absolute_percentage_error(selected_data['А'], predictions['ZO_pred']) * 100
+    r2 = r2_score(selected_data['А'], predictions['ZO_pred'])
+
+    return k0, predictions, mape, r2
 
 
 def fit_pfo_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, float, float]:
@@ -144,50 +190,42 @@ def fit_pso_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, flo
     return k2, predictions, mape, r2
 
 
-def create_results_summary(k1: float, k2: float, mape_pfo: float, mape_pso: float,
-                          r2_pfo: float, r2_pso: float) -> pd.DataFrame:
+def create_results_summary(k0: float, k1: float, k2: float, 
+                           mape_zo: float, mape_pfo: float, mape_pso: float,
+                           r2_zo: float, r2_pfo: float, r2_pso: float) -> pd.DataFrame:
     """
     Create a summary DataFrame of model results.
-
-    Args:
-        k1: PFO rate constant
-        k2: PSO rate constant
-        mape_pfo: PFO MAPE
-        mape_pso: PSO MAPE
-        r2_pfo: PFO R-squared
-        r2_pso: PSO R-squared
 
     Returns:
         Summary DataFrame
     """
     return pd.DataFrame({
-        'Модель': ['PFO', 'PSO'],
+        'Модель': ['ZO', 'PFO', 'PSO'],
         'Параметры': [
+            f'k₀ = {abs(k0):.5f} ед/мин',
             f'k₁ = {abs(k1):.5f} мин⁻¹',
             f'k₂ = {k2:.5f} мин⁻¹'
         ],
-        'R²': [r2_pfo, r2_pso],
-        'MAPE (%)': [mape_pfo, mape_pso]
+        'R²': [r2_zo, r2_pfo, r2_pso],
+        'MAPE (%)': [mape_zo, mape_pfo, mape_pso]
     })
 
 
-def create_detailed_results(pfo_predictions: pd.DataFrame, pso_predictions: pd.DataFrame) -> pd.DataFrame:
+def create_detailed_results(zo_predictions: pd.DataFrame, pfo_predictions: pd.DataFrame, pso_predictions: pd.DataFrame) -> pd.DataFrame:
     """
     Create detailed point-by-point results DataFrame.
-
-    Args:
-        pfo_predictions: PFO model predictions
-        pso_predictions: PSO model predictions
 
     Returns:
         Detailed results DataFrame
     """
     return pd.DataFrame({
         'Время (мин)': pfo_predictions['т, мин'],
+        'A фактическое': zo_predictions['А'],
+        'ZO прогноз': zo_predictions['ZO_pred'],
+        'ZO ошибка (%)': np.abs((zo_predictions['А'] - zo_predictions['ZO_pred']) / zo_predictions['А']) * 100,
         'A/A0 фактическое': pfo_predictions['А/А0'],
         'PFO прогноз': pfo_predictions['PFO_pred'],
         'PFO ошибка (%)': np.abs((pfo_predictions['А/А0'] - pfo_predictions['PFO_pred']) / pfo_predictions['А/А0']) * 100,
-        'A фактическое': pso_predictions['А'],
         'PSO прогноз': pso_predictions['PSO_pred'],
         'PSO ошибка (%)': np.abs((pso_predictions['А'] - pso_predictions['PSO_pred']) / pso_predictions['А']) * 100,
     })

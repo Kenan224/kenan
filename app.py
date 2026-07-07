@@ -30,8 +30,9 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&family=JetBrains+Mono:wght=400;500&display=swap');
 
+/* 1. ضبط الخلفية العامة للتطبيق والخطوط */
 .stApp {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -41,71 +42,102 @@ st.markdown("""
     max-width: 1400px;
 }
 
+/* 2. إجبار جميع النصوص والقوائم والمسماوت على اللون الداكن لكي تظهر فوق الخلفية البيضاء */
+.stApp p, 
+.stApp span, 
+.stApp label, 
+.stApp li, 
+.stApp div,
+div[data-testid="stMarkdownContainer"] p,
+div[data-testid="stWidgetLabel"] p,
+label[data-testid="stWidgetLabel"] {
+    color: #1e293b !important;
+}
+
+/* 3. الهيدر الرئيسي (الكرت الأزرق) - استثناء لكي يظل خطه أبيض واضح */
 .main-header {
-    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-    color: white;
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%) !important;
     padding: 2rem;
     border-radius: 12px;
     margin-bottom: 2rem;
     box-shadow: 0 4px 20px rgba(30, 64, 175, 0.15);
 }
 
-.main-header h1 {
-    margin: 0;
-    font-weight: 600;
-    font-size: 2.2rem;
-    color: white !important;
+.main-header h1, 
+.main-header p, 
+.main-header span,
+.main-header strong {
+    color: #ffffff !important;
 }
 
+/* 4. كرت معلومات الطالب والمشرف */
 .info-card {
-    background: white;
+    background: white !important;
     padding: 1.2rem;
     border-radius: 12px;
     margin-bottom: 1.5rem;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
 }
+.info-card p, .info-card strong {
+    color: #475569 !important;
+}
 
+/* 5. كروت قياس الأداء الملونة للموديلات (تأمين ظهور نصوصها بألوانها الخاصة) */
 .performance-metric {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    border: 1px solid #10b981;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+    border: 1px solid #10b981 !important;
     padding: 1rem;
     border-radius: 10px;
     margin: 0.5rem 0;
 }
-
-.performance-metric .metric-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #047857;
-}
-
-.performance-metric .metric-label {
-    color: #065f46;
-    font-weight: 600;
+.performance-metric div, 
+.performance-metric p {
+    color: #047857 !important;
+    font-weight: 600 !important;
 }
 
 .summary-stat {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border: 1px solid #f59e0b;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+    border: 1px solid #f59e0b !important;
     padding: 1.2rem;
     border-radius: 10px;
     margin: 0.8rem 0;
 }
-
-.section-header-data { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; padding: 1rem; border-radius: 10px; border-left: 5px solid #3b82f6; margin-bottom: 1rem; }
-.section-header-results { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); color: #047857; padding: 1rem; border-radius: 10px; border-left: 5px solid #10b981; margin-bottom: 1rem; }
-.section-header-analysis { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; padding: 1rem; border-radius: 10px; border-left: 5px solid #f59e0b; margin-bottom: 1rem; }
-.section-header-visualization { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #7c3aed; padding: 1rem; border-radius: 10px; border-left: 5px solid #a855f7; margin-bottom: 1rem; }
-.section-header-download { background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%); color: #7f1d1d; padding: 1rem; border-radius: 10px; border-left: 5px solid #ef4444; margin-bottom: 1rem; }
-
-.section-header-data h2, .section-header-results h2, .section-header-analysis h2, .section-header-visualization h2, .section-header-download h2 {
-    color: inherit !important;
-    margin: 0;
+.summary-stat h3, 
+.summary-stat div, 
+.summary-stat p {
+    color: #92400e !important;
 }
 
-.highlight-success { background: #dcfce7; border: 1px solid #22c55e; border-radius: 12px; padding: 1rem; margin: 1rem 0; color: #14532d; }
+/* 6. عناوين الأقسام الرئيسية الملونة */
+.section-header-data { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important; padding: 1rem; border-radius: 10px; border-left: 5px solid #3b82f6; margin-bottom: 1rem; }
+.section-header-results { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important; padding: 1rem; border-radius: 10px; border-left: 5px solid #10b981; margin-bottom: 1rem; }
+.section-header-analysis { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important; padding: 1rem; border-radius: 10px; border-left: 5px solid #f59e0b; margin-bottom: 1rem; }
+.section-header-visualization { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%) !important; padding: 1rem; border-radius: 10px; border-left: 5px solid #a855f7; margin-bottom: 1rem; }
+.section-header-download { background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%) !important; padding: 1rem; border-radius: 10px; border-left: 5px solid #ef4444; margin-bottom: 1rem; }
 
+.section-header-data h2, 
+.section-header-results h2, 
+.section-header-analysis h2, 
+.section-header-visualization h2, 
+.section-header-download h2 {
+    color: inherit !important;
+    margin: 0 !important;
+}
+
+.highlight-success { background: #dcfce7 !important; border: 1px solid #22c55e !important; border-radius: 12px; padding: 1rem; margin: 1rem 0; }
+.highlight-success p, .highlight-success div { color: #14532d !important; }
+
+/* 7. عناوين الموديلات الفرعية الفرعية تظهر بلون داكن ممتاز */
+.model-title {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    margin-bottom: 0.5rem;
+}
+</style>
+""", unsafe_allow_html=True)
 /* ========================================================================= */
 /* 🛠️ الكود المضاف لإصلاح ألوان النصوص وجعلها داكنة وواضحة جداً فوق الخلفية الفاتحة */
 /* ========================================================================= */

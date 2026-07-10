@@ -199,15 +199,12 @@ def main():
             st.markdown("---")
             st.markdown("### 📋 Требования к файлу")
             st.markdown("""
-            **Обязательные столбцы:**
-            - `т, мин` (Время в минутах)
+            **Входные данные:**
+            - `т, мин` (Время)
             - `А` (Оптическая плотность)
 
-            **Опциональные столбцы:**
-            - `А0` (Начальная плотность)
-            - `А/А0`
-            - `ln А/А0`
-            - `1/А`
+            **Опционально:**
+            - `А0`, `А/А0`, `ln А/А0`, `1/А`
             """)
 
         st.markdown("""
@@ -333,34 +330,59 @@ def main():
             index=0, horizontal=True
         )
 
-        # تحضير وتحديث الـ Sidebar ديناميكياً بحسب الموديل المختار
+        # 🛠️ تحديث الشريط الجانبي ليشمل المدخلات والمخرجات المطلوبة بدقة هندسية
         with st.sidebar:
             st.header("⚙️ Параметры процесса")
             st.info("Тип: Гомогенный катализ")
             st.markdown("---")
-            st.markdown("### 📋 Требования к файлу")
             
             if homo_model == "Power-law (степенной закон)":
+                st.markdown("### 📋 Входные данные")
                 st.markdown("""
-                **Входные данные:**
                 - `t` — время реакции
                 - `CA` — концентрация реагента A
                 - `CB` — концентрация реагента B
                 - `r` — скорость реакции
                 """)
-            elif homo_model == "Arrhenius":
+                st.markdown("---")
+                st.markdown("### ⚙️ Определяемые параметры")
                 st.markdown("""
-                **Входные данные:**
+                - `k` — константа скорости
+                - `α` — порядок реакции по A
+                - `β` — порядок реакции по B
+                - `R²` — коэф. детерминации
+                - `RMSE` — кв. ошибка
+                """)
+                
+            elif homo_model == "Arrhenius":
+                st.markdown("### 📋 Входные данные")
+                st.markdown("""
                 - `T` — температура (K)
                 - `k` — константа скорости
                 """)
-            elif homo_model == "Последовательные реакции":
+                st.markdown("---")
+                st.markdown("### ⚙️ Определяемые параметры")
                 st.markdown("""
-                **Входные данные:**
+                - `A` — предэкспонент
+                - `Ea` — энергия активации
+                - `R²` — коэф. детерминации
+                - `RMSE` — кв. ошибка
+                """)
+                
+            elif homo_model == "Последовательные реакции":
+                st.markdown("### 📋 Входные данные")
+                st.markdown("""
                 - `t` — время реакции
                 - `CA` — концентрация вещества A
                 - `CB` — концентрация вещества B
                 - `CC` — концентрация вещества C
+                """)
+                st.markdown("---")
+                st.markdown("### ⚙️ Определяемые параметры")
+                st.markdown("""
+                - `k₁` — константа 1-й стадии
+                - `k₂` — константа 2-й стадии
+                - `R²` — средний коэф. детерминации
                 """)
 
         st.markdown(f"""
@@ -369,7 +391,6 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-        # إضافة طريقتي الإدخال لقسم التحفيز المتجانس
         homo_input_method = st.radio(
             "Выберите способ ввода данных для гомогенного катализа:",
             ["Загрузить файл", "Ввести данные вручную"],
@@ -378,7 +399,6 @@ def main():
 
         h_df = None
 
-        # طريقتي سحب أو كتابة البيانات هندسياً
         if homo_input_method == "Загрузить файл":
             uploaded_h_file = st.file_uploader("Выберите файл Excel/CSV", type=['xlsx', 'csv'], key=f"file_{homo_model}")
             if uploaded_h_file is not None:
@@ -391,7 +411,7 @@ def main():
                 except Exception as e:
                     st.error(f"Ошибка загрузки файла: {str(e)}")
         else:
-            # إنشاء جداول فارغة تماماً بدون أي أمثلة سابقة تعبأ يدوياً
+            # جداول فارغة كلياً لبدء الإدخال اليدوي الصافي
             if homo_model == "Power-law (степенной закон)":
                 empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=[[0.0, 0.0, 0.0, 0.0]])
             elif homo_model == "Arrhenius":
@@ -402,17 +422,20 @@ def main():
             st.markdown("**Заполните таблицу данными (используйте кнопку + для добавления строк):**")
             h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
 
-        # بدء الحسابات البرمجية فقط إذا كانت البيانات جاهزة وليست فارغة أو أصفاراً
+        # الحسابات الرياضية
         if h_df is not None and len(h_df) > 0:
             
             # 1. СТЕПЕННОЙ ЗАКОН (Power-law)
             if homo_model == "Power-law (степенной закон)":
                 if st.button("🚀 Выполнить кинетический расчет (Power-law)"):
                     try:
-                        # التأكد من عدم وجود أصفار لتفادي خطأ اللوغاريتم
                         valid_mask = (h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)
                         clean_df = h_df[valid_mask]
                         
+                        if clean_df.empty:
+                            st.warning("Пожалуйста, введите корректные числовые значения больше нуля.")
+                            return
+
                         log_CA = np.log(clean_df['CA'].values)
                         log_CB = np.log(clean_df['CB'].values)
                         log_r = np.log(clean_df['r'].values)
@@ -444,7 +467,7 @@ def main():
                         ax.grid(True)
                         st.pyplot(fig)
                     except Exception as e:
-                        st.error(f"Ошибка расчета: {str(e)}. Проверьте правильность введенных данных (значения должны быть больше 0).")
+                        st.error(f"Ошибка расчета: {str(e)}.")
 
             # 2. ARRHENIUS MODEL
             elif homo_model == "Arrhenius":
@@ -453,6 +476,10 @@ def main():
                         valid_mask = (h_df['T'] > 0) & (h_df['k'] > 0)
                         clean_df = h_df[valid_mask]
                         
+                        if clean_df.empty:
+                            st.warning("Пожалуйста, введите корректные числовые значения больше нуля.")
+                            return
+
                         R = 8.314
                         inv_T = 1.0 / clean_df['T'].values
                         log_k = np.log(clean_df['k'].values)
@@ -486,6 +513,11 @@ def main():
             elif homo_model == "Последовательные реакции":
                 if st.button("🚀 Выполнить кинетический расчет (Последовательные реакции)"):
                     try:
+                        # التأكد من التعبئة السليمة
+                        if (h_df['t'] == 0).all() or len(h_df) < 2:
+                            st.warning("Пожалуйста, заполните таблицу экспериментальными точками времени и концентраций.")
+                            return
+                            
                         t_data = h_df['t'].values
                         CA_data = h_df['CA'].values
                         

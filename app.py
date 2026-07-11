@@ -26,22 +26,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Professional CSS styling
+# Professional CSS styling (Restored to original custom classes only)
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&family=JetBrains+Mono:wght=400;500&display=swap');
-
-.stApp {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.main .block-container {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-    max-width: 1400px;
-}
-
 .main-header {
     background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
     padding: 2rem;
@@ -128,29 +115,38 @@ def convert_df_to_excel(df):
 
 
 def clean_homogeneous_data(df):
-    """دالة هجومية فائقة لتطهير الفواصل والمسافات الخفية وتوحيد الأعمدة ميكانيكياً"""
-    if df is None:
-        return None
+    """دالة صامتة تماماً لإصلاح الـ Unnamed والفواصل والمسافات ميكانيكياً"""
+    if df is None or df.empty:
+        return df
     
     df = df.copy()
     
-    # 1. حل مشكلة الـ CSV الروسي المدمج بفواصل منقوطة تلقائياً
+    # إصلاح مشكلة الأسطر الفارغة التي تجعل الباندا يقرأ الأعمدة كـ Unnamed
+    if any('Unnamed' in str(col) for col in df.columns):
+        for i in range(min(5, len(df))):
+            row_values = [str(x).strip().lower() for x in df.iloc[i].dropna()]
+            has_t = any('t' == x or 'время' in x or 'time' in x for x in row_values)
+            has_ca = any('ca' in x or 'концентрация' in x or 'c_a' in x for x in row_values)
+            if has_t or has_ca:
+                new_headers = df.iloc[i].tolist()
+                df = df.iloc[i+1:].copy()
+                df.columns = new_headers
+                break
+    
+    # حل مشكلة الـ CSV المدمج بفواصل منقوطة تلقائياً
     if len(df.columns) == 1:
         first_col = str(df.columns[0])
         for sep in [';', '\t']:
             if sep in first_col:
                 header_parts = first_col.split(sep)
-                rows = []
-                for _, row in df.iterrows():
-                    rows.append(str(row.iloc[0]).split(sep))
+                rows = [str(row.iloc[0]).split(sep) for _, row in df.iterrows()]
                 df = pd.DataFrame(rows, columns=header_parts)
                 break
 
-    # 2. التعرف المرن الذكي على الأعمدة (Fuzzy Matching) وتجاوز فخ اللغة والكيريلية
+    # توحيد أسماء الأعمدة وتجاوز فخ الحروف الروسية والإنجليزية المتطابقة
     new_columns = []
     for col in df.columns:
         c = str(col).strip().lower()
-        # استبدال الحروف الروسية المتطابقة شكلياً مع الإنجليزية
         c = c.replace('с', 'c').replace('а', 'a').replace('в', 'b').replace('т', 't').replace('р', 'r')
         
         if 'ca' in c or 'c_a' in c or 'концентрация a' in c:
@@ -173,19 +169,16 @@ def clean_homogeneous_data(df):
             
     df.columns = new_columns
     
-    # 3. التطهير الشامل للخلايا (مسح الفراغات العادية والخفية، وتحويل الفواصل لنقاط)
+    # تطهير الخلايا من المسافات الخفية والفواصل العشرية الروسية
     for col in df.columns:
+        if 'Unnamed' in str(col):
+            continue
         df[col] = df[col].astype(str)
-        # مسح شامل لأي نوع مسافة خفية (\xa0, \t, \r, \n)
         df[col] = df[col].str.replace(r'\s+', '', regex=True)
-        # تحويل الفاصلة الروسية لنقطة إنجليزية دقيقة الحساب
         df[col] = df[col].str.replace(',', '.', regex=False)
-        # التحويل الإجباري إلى أرقام حقيقية (float)
         df[col] = pd.to_numeric(df[col], errors='coerce')
         
-    # إزالة أي سطور فارغة تماماً
-    df = df.dropna(how='all')
-    return df
+    return df.dropna(how='all')
 
 
 def main():
@@ -389,13 +382,9 @@ def main():
             st.markdown("**Заполните таблицу данными:**")
             h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
 
-        # تفعيل التطهير الذكي الفوري وعرض النتيجة الحية للمستخدم للتأكد
+        # المعالجة الصامتة الفورية بعد قراءة البيانات مباشرة
         if h_df is not None and len(h_df) > 0:
             h_df = clean_homogeneous_data(h_df)
-            
-            st.success(f"📋 Данные успешно прочитаны и нормализованы! Обнаруженные столбцы: {list(h_df.columns)}")
-            with st.expander("🔎 Посмотреть, как программа распознала числа (Очищенная таблица)"):
-                st.dataframe(h_df, use_container_width=True)
 
             # 1. СТЕПЕННОЙ ЗАКОН (Power-law)
             if homo_model == "Power-law (степенной закон)":

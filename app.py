@@ -94,7 +94,7 @@ div[role="listbox"] *,
     color: #1e293b !important;
 }
 
-/* خيارات القائمة المنسдلة عند فتحها لتظل بيضاء */
+/* خيارات القائمة المنسدلة عند فتحها لتظل بيضاء */
 li[role="option"], [data-baseweb="menu"] li, div[data-baseweb="popover"] div {
     background-color: #ffffff !important;
     background: #ffffff !important;
@@ -105,9 +105,10 @@ li[role="option"]:hover, [data-baseweb="menu"] li:hover {
     color: #1e3a8a !important;
 }
 
-/* إجبار كل نصوص التطبيق العادية على التباين الغامق المقروء */
-html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
+/* إجبار كل نصوص التطبيق العادية على التباين الغامق المقروء مع تكبير الخط شحطتين وتوحيده */
+html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, button {
     color: #1e293b !important;
+    font-size: 1.1rem !important;
 }
 
 /* 3) الهيدر الرئيسي - مستطيل العنوان فقط */
@@ -122,7 +123,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
 .main-header-title h1 {
     margin: 0;
     font-weight: 600;
-    font-size: 2rem;
+    font-size: 2.2rem !important;
     color: #ffffff !important;
 }
 
@@ -140,7 +141,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
     color: #1e40af !important; 
     margin: 0; 
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1.05rem !important;
 }
 
 /* كروت المعلومات الكلاسيكية */
@@ -161,8 +162,8 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
     box-shadow: 0 2px 4px rgba(0,0,0,0.04);
     border: 1px solid;
 }
-.metric-box h4 { margin: 0; font-size: 0.85rem; font-weight: 600; }
-.metric-box h2 { margin: 0.3rem 0 0 0; font-size: 1.4rem; font-weight: 700; }
+.metric-box h4 { margin: 0; font-size: 0.95rem !important; font-weight: 600; }
+.metric-box h2 { margin: 0.3rem 0 0 0; font-size: 1.5rem !important; font-weight: 700; }
 
 .mb-amber { background: #fffbeb !important; border-color: #fde68a !important; }
 .mb-amber h4, .mb-amber h2 { color: #92400e !important; }
@@ -185,6 +186,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
     color: #065f46 !important;
     font-weight: 600;
     text-align: center;
+    font-size: 1.15rem !important;
 }
 
 /* عناوين الأقسام المتناسقة */
@@ -194,7 +196,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
     border-left: 5px solid;
     margin-bottom: 1rem;
 }
-.section-header h2 { margin: 0; font-size: 1.25rem; }
+.section-header h2 { margin: 0; font-size: 1.35rem !important; }
 
 .sh-data { background: #eff6ff !important; border-left-color: #2563eb !important; }
 .sh-data h2 { color: #1e3a8a !important; }
@@ -229,8 +231,8 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
     padding: 1rem;
     border-left: 5px solid;
 }
-.model-card h3 { margin: 0 0 0.5rem 0; }
-.model-card p { margin: 0.25rem 0; }
+.model-card h3 { margin: 0 0 0.5rem 0; font-size: 1.25rem !important; }
+.model-card p { margin: 0.25rem 0; font-size: 1.05rem !important; }
 
 .mc-zo   { background: #f8fafc !important; border-left-color: #94a3b8 !important; }
 .mc-zo   h3, .mc-zo   p { color: #334155 !important; }
@@ -244,7 +246,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
 /* الشريط الجانبي */
 section[data-testid="stSidebar"] { background-color: #ffffff !important; }
 .sidebar-params-title {
-    font-size: 1.1rem;
+    font-size: 1.2rem !important;
     font-weight: 700;
     color: #1e3a8a !important;
     margin: 0.6rem 0 0.4rem 0;
@@ -258,6 +260,7 @@ section[data-testid="stSidebar"] { background-color: #ffffff !important; }
     color: #1e3a8a !important;
     border: 1.5px solid #2563eb !important;
     font-weight: 600 !important;
+    font-size: 1.05rem !important;
 }
 .stDownloadButton button:hover, .stButton button:hover {
     background-color: #2563eb !important;
@@ -508,7 +511,11 @@ def render_photocatalysis():
 
         st.markdown(section_header("sh-viz", "📊", "Графика"), unsafe_allow_html=True)
         fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
-        st.pyplot(fig_main)
+        
+        # احتواء الرسم البياني داخل نصف مساحة الصفحة لمنع تمطيطه وتكبير خطوطه بشكل مشوه
+        col_chart_photo, _ = st.columns([1, 1])
+        with col_chart_photo:
+            st.pyplot(fig_main)
 
         st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
         d_col1, d_col2 = st.columns(2)
@@ -594,7 +601,6 @@ def render_homogeneous():
             c4.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
             c5.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
 
-            # تصغير إضافي للجرافيك مع خطوط صغيرة جداً لمنع التداخل
             fig, ax = plt.subplots(figsize=(4.0, 2.2))
             x_linear = (clean_df['CA'].values ** alpha_val) * (clean_df['CB'].values ** beta_val)
             ax.scatter(x_linear, clean_df['r'].values, color='#ef4444', label='Эксперимент', s=20)
@@ -604,7 +610,11 @@ def render_homogeneous():
             ax.tick_params(axis='both', which='major', labelsize=7.5)
             ax.legend(fontsize=7.5)
             ax.grid(True, linestyle='--', alpha=0.6)
-            st.pyplot(fig)
+            
+            # احتواء الرسم البياني لمنع تمطيطه وتصغير مساحته الإجمالية على الشاشة
+            col_chart_pl, _ = st.columns([1, 1])
+            with col_chart_pl:
+                st.pyplot(fig)
 
             # قسم تحميل النتائج المخصص للنموذج الأول
             results_summary = pd.DataFrame({
@@ -642,7 +652,6 @@ def render_homogeneous():
             c3.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
             c4.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
 
-            # تصغير إضافي للجرافيك مع خطوط صغيرة جداً لمنع التداخل
             fig, ax = plt.subplots(figsize=(4.0, 2.2))
             ax.scatter(inv_T, log_k, color='#ef4444', label='Эксперимент', s=20)
             ax.plot(inv_T, slope * inv_T + intercept, color='#10b981', linewidth=1.5, label='Линейный тренд')
@@ -651,7 +660,11 @@ def render_homogeneous():
             ax.tick_params(axis='both', which='major', labelsize=7.5)
             ax.legend(fontsize=7.5)
             ax.grid(True, linestyle='--', alpha=0.6)
-            st.pyplot(fig)
+            
+            # احتواء الرسم البياني لمنع تمطيطه وتصغير مساحته الإجمالية على الشاشة
+            col_chart_arr, _ = st.columns([1, 1])
+            with col_chart_arr:
+                st.pyplot(fig)
 
             # قسم تحميل النتائج المخصص للنموذج الثاني
             results_summary = pd.DataFrame({
@@ -686,16 +699,13 @@ def render_homogeneous():
             CA_pred, CB_pred = CA_data[0] * np.exp(-k1_fit * t_data), fit_B(t_data, k2_fit)
             CC_pred = CA_data[0] - CA_pred - CB_pred
             
-            # حساب المقاييس المطلوبة وتغيير التسمية لـ R² مباشرة
             r2_A, _ = calculate_metrics(CA_data, CA_pred)
             r2_B, _ = calculate_metrics(h_df['CB'].values, CB_pred)
             r2_C, _ = calculate_metrics(h_df['CC'].values, CC_pred)
             r2_final = (r2_A + r2_B + r2_C) / 3.0
             
-            # حساب الـ RMSE الإجمالي بدقة
             rmse_val = np.sqrt(np.mean(list((CA_data - CA_pred)**2) + list((h_df['CB'].values - CB_pred)**2) + list((h_df['CC'].values - CC_pred)**2)))
 
-            # حساب أعلى تركيز للمادة الوسيطة ووقت حدوثه عبر مصفوفة دقيقة عالية الكثافة لمنع أي تقريب غير صحيح
             t_fine_mesh = np.linspace(0, max(t_data) * 1.5, 2000)
             CB_fine_mesh = fit_B(t_fine_mesh, k2_fit)
             max_idx = np.argmax(CB_fine_mesh)
@@ -710,7 +720,6 @@ def render_homogeneous():
             c4.markdown(f'<div class="performance-metric">📉 RMSE = {rmse_val:.4f}</div>', unsafe_allow_html=True)
             c5.markdown(f'<div class="performance-metric">🔝 CB,max={CB_max_val:.3f} ({t_max_val:.1f} мин)</div>', unsafe_allow_html=True)
 
-            # تصغير إضافي وتسمية المحاور المفقودة لتصبح احترافية متكاملة للبحث العلمي
             fig, ax = plt.subplots(figsize=(4.0, 2.2))
             ax.plot(t_data, CA_data, 'o', color='#ef4444', markersize=4)
             ax.plot(t_data, CA_pred, '-', color='#ef4444', label='A', linewidth=1.5)
@@ -719,13 +728,16 @@ def render_homogeneous():
             ax.plot(t_data, h_df['CC'].values, 'o', color='#2563eb', markersize=4)
             ax.plot(t_data, CC_pred, '-', color='#2563eb', label='C', linewidth=1.5)
             
-            # التسميات الجديدة المطلوبة للمحاور وحجم الخطوط الصغير
             ax.set_xlabel('Время (t)', fontsize=8)
             ax.set_ylabel('Концентрация (C)', fontsize=8)
             ax.tick_params(axis='both', which='major', labelsize=7.5)
             ax.legend(fontsize=7.5)
             ax.grid(True, linestyle='--', alpha=0.6)
-            st.pyplot(fig)
+            
+            # احتواء الرسم البياني لمنع تمطيطه وتصغير مساحته الإجمالية на الشاشة
+            col_chart_cons, _ = st.columns([1, 1])
+            with col_chart_cons:
+                st.pyplot(fig)
 
             # قسم تحميل النتائج المخصص للنموذج الثالث
             results_summary = pd.DataFrame({

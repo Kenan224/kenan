@@ -122,7 +122,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
 .main-header-title h1 {
     margin: 0;
     font-weight: 700;
-    font-size: 3.2rem !important; /* حجم كبير جداً للعنوان */
+    font-size: 5.2rem !important; /* حجم كبير جداً للعنوان */
     color: #ffffff !important;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }

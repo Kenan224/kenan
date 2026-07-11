@@ -265,78 +265,70 @@ def main():
             horizontal=True
         )
 
-       
-        uploaded_file = st.file_uploader(
-            "	",
-            type=['xlsx', 'csv'],
-            help="Загрузите файл Excel или CSV с кинетическими данными"
-        )
+        df = None
+        if input_method == "Загрузить файл":
+            uploaded_file = st.file_uploader(
+                "Загрузите файл",
+                type=['xlsx', 'csv'],
+                help="Загрузите файл Excel или CSV с кинетическими данными"
+            )
 
-        if uploaded_file is not None:
-            try:
-                file_extension = uploaded_file.name.split('.')[-1].lower()
+            if uploaded_file is not None:
+                try:
+                    file_extension = uploaded_file.name.split('.')[-1].lower()
 
-                if file_extension == 'csv':
-                    # Handle CSV files
-                    df = read_csv_file(uploaded_file)
-
-                    # Check if file is empty
-                    if df.empty:
-                        st.error("Файл CSV пуст")
-                        return
-
-                else:
-                    # Handle Excel files
-                    excel_file = pd.ExcelFile(uploaded_file)
-                    sheet_names = excel_file.sheet_names
-
-                    # Add sheet selector to sidebar if multiple sheets exist
-                    selected_sheet = None
-                    if len(sheet_names) > 1:
-                        with st.sidebar:
-                            st.markdown("---")
-                            selected_sheet = st.selectbox(
-                                "Выберите лист Excel",
-                                sheet_names,
-                                index=0,
-                                help="Выберите лист для анализа из доступных в файле"
-                            )
+                    if file_extension == 'csv':
+                        # Handle CSV files
+                        df = read_csv_file(uploaded_file)
+                        # Check if file is empty
+                        if df.empty:
+                            st.error("Файл CSV пуст")
+                            return
                     else:
-                        selected_sheet = sheet_names[0]
+                        # Handle Excel files
+                        excel_file = pd.ExcelFile(uploaded_file)
+                        sheet_names = excel_file.sheet_names
 
-                    # Read the selected sheet
-                    try:
+                        # Add sheet selector to sidebar if multiple sheets exist
+                        selected_sheet = None
+                        if len(sheet_names) > 1:
+                            with st.sidebar:
+                                st.markdown("---")
+                                selected_sheet = st.selectbox(
+                                    "Выберите лист Excel",
+                                    sheet_names,
+                                    index=0,
+                                    help="Выберите лист для анализа из доступных в файле"
+                                )
+                        else:
+                            selected_sheet = sheet_names[0]
+
+                        # Read the selected sheet
                         df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
-
                         # Check if sheet is empty
                         if df.empty:
                             st.error(f"Лист '{selected_sheet}' пуст")
-                            if len(sheet_names) > 1:
-                                st.error("Попробуйте выбрать другой лист.")
                             return
 
-                    except Exception as sheet_error:
-                        st.error(f"Ошибка чтения листа '{selected_sheet}': {str(sheet_error)}")
-                        if len(sheet_names) > 1:
-                            st.error("Попробуйте выбрать другой лист.")
+                    # Validate structure (common for both CSV and Excel)
+                    is_valid, error_message = validate_data_structure(df)
+
+                    if not is_valid:
+                        st.error(f"{error_message}")
+                        if file_extension != 'csv' and len(sheet_names) > 1:
+                            st.error(f"Лист '{selected_sheet}' не содержит требуемых данных. Попробуйте выбрать другой лист.")
                         return
 
-                # Validate structure (common for both CSV and Excel)
-                is_valid, error_message = validate_data_structure(df)
-
-                if not is_valid:
-                    st.error(f"{error_message}")
-                    if file_extension != 'csv' and len(sheet_names) > 1:
-                        st.error(f"Лист '{selected_sheet}' не содержит требуемых данных. Попробуйте выбрать другой лист.")
-                    return
-
-                    
+                    # التعديل هنا: هذا الجزء أصبح خارج شرط الخطأ ويعمل عندما تكون البيانات صالحة فقط
+                    df.columns = df.columns.str.strip()
                     if 'А0' not in df.columns and 'А' in df.columns and len(df) > 0:
                         df['А'] = pd.to_numeric(df['А'], errors='coerce')
                         df['А0'] = df['А'].iloc[0]
                     if 'А/А0' not in df.columns and 'А' in df.columns and 'А0' in df.columns:
                         df['А/А0'] = df['А'] / df['А0']
+                    
                     df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
+                    
                 except Exception as e:
                     st.error(f"Ошибка: {str(e)}")
 
@@ -344,7 +336,6 @@ def main():
             st.markdown('<div class="custom-section-header"><h2>📝 Ручной ввод данных</h2></div>', unsafe_allow_html=True)
             st.markdown('<div class="info-banner">Введите данные в таблицу ниже. Первое значение в столбце А будет автоматически использовано как начальная Оптическая плотность А0 для всех расчетов. Столбец А/А0 будет рассчитан автоматически.</div>', unsafe_allow_html=True)
             
-            # منع السطر الطويل والأقواس المفتوحة برمجياً تماماً هنا
             init_cols = ['Время (мин)', 'Оптическая плотность А']
             init_rows = [[0.0, 0.00000]]
             default_data = pd.DataFrame(columns=init_cols, data=init_rows)

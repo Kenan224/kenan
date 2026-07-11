@@ -27,7 +27,7 @@ st.set_page_config(
 )
 
 # =============================================================================
-# CSS -- تصميم موحد بتباين ثابت (لا نص أبيض على خلفية بيضا، ولا نص غامق على خلفية غامقة)
+# CSS -- تصميم موحد بتباين ثابت وتعديلات مخصصة لإزالة الخلفيات الغامقة
 # =============================================================================
 st.markdown("""
 <style>
@@ -36,28 +36,44 @@ st.markdown("""
     background-color: #f5f7fa;
 }
 
-/* إجبار كل نص افتراضي (عناوين، فقرات، labels) على لون غامق مقروء دائماً */
+/* إجبار كل نص افتراضي على لون غامق مقروء دائماً */
 html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSelectbox label,
 .stTextInput label, .stNumberInput label, .stDataFrame, .stFileUploader label {
     color: #1e293b;
 }
 
-/* الهيدر الرئيسي -- خلفية غامقة + نص أبيض (تباين صحيح) */
-.main-header {
+/* 1) الهيدر الرئيسي - مستطيل العنوان فقط */
+.main-header-title {
     background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-    padding: 1.8rem;
+    padding: 1.6rem;
     border-radius: 12px;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.6rem;
     box-shadow: 0 4px 15px rgba(30, 64, 175, 0.2);
     text-align: center;
 }
-.main-header h1 {
+.main-header-title h1 {
     margin: 0;
     font-weight: 600;
     font-size: 2rem;
     color: #ffffff !important;
 }
-.main-header p { color: #dbeafe !important; margin: 0.3rem 0 0 0; }
+
+/* 2) مستطيل منفرد ومنفصل تماماً للأسماء والمعلومات */
+.main-header-authors {
+    background: #eff6ff;
+    padding: 0.8rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.06);
+    border: 1px solid #bfdbfe;
+    text-align: center;
+}
+.main-header-authors p { 
+    color: #1e40af !important; 
+    margin: 0; 
+    font-weight: 600;
+    font-size: 0.95rem;
+}
 
 /* كرت معلومات -- خلفية بيضاء + نص غامق دائماً */
 .info-card {
@@ -71,7 +87,7 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
 }
 .info-card * { color: #1e293b !important; }
 
-/* صناديق المقاييس -- خلفية فاتحة + نص غامق من نفس العائلة اللونية (تباين مضمون) */
+/* صناديق المقاييس -- خلفية فاتحة + نص غامق */
 .metric-box {
     border-radius: 10px;
     padding: 0.9rem;
@@ -94,7 +110,7 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
 .mb-rose { background: #fff1f2; border-color: #fecdd3; }
 .mb-rose h4, .mb-rose h2 { color: #9f1239 !important; }
 
-/* شارة نتيجة صغيرة (المعاملات، R2، MAPE) */
+/* شارة نتيجة صغيرة */
 .performance-metric {
     background: #f0fdf4;
     border: 1px solid #10b981;
@@ -106,7 +122,7 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
     text-align: center;
 }
 
-/* عناوين الأقسام -- خلفية فاتحة ونص غامق دائماً */
+/* عناوين الأقسام */
 .section-header {
     padding: 0.8rem 1.2rem;
     border-radius: 10px;
@@ -142,7 +158,7 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
     color: #14532d !important;
 }
 
-/* كرت موديل صغير (مقارنة الموديلات) -- كل كرت بلون واضح ونص غامق مطابق */
+/* كرت موديل صغير */
 .model-card {
     border-radius: 10px;
     padding: 1rem;
@@ -173,18 +189,22 @@ section[data-testid="stSidebar"] * { color: #1e293b !important; }
 }
 
 /* ============================================================= */
-/* تثبيت قسري: القوائم المنسدلة (selectbox) دايماً بخلفية بيضاء   */
-/* هاد يمنع مشكلة "الخلفية السوداء" مهما كان ثيم المتصفح/الجهاز    */
+/* حل مشكلة "المستطيلات السوداء" وجعلها فاتحة بالكامل قسرياً     */
 /* ============================================================= */
+/* أولاً: القوائم المنسدلة (selectbox) */
+div[data-testid="stSelectbox"] > div,
+div[data-testid="stSelectbox"] div[data-baseweb="select"],
 div[data-baseweb="select"] > div,
 div[data-baseweb="select"] div[data-baseweb="input"] {
     background-color: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
     color: #1e293b !important;
 }
-div[data-baseweb="select"] span, div[data-baseweb="select"] div { color: #1e293b !important; }
+div[data-baseweb="select"] span, div[data-baseweb="select"] div { 
+    color: #1e293b !important; 
+}
 
-/* قائمة الخيارات المنسدلة نفسها (لما تنفتح) */
+/* القائمة عند فتح الخيارات */
 ul[data-baseweb="menu"], div[data-baseweb="popover"] div {
     background-color: #ffffff !important;
 }
@@ -196,7 +216,18 @@ ul[data-baseweb="menu"] li:hover {
     background-color: #eff6ff !important;
 }
 
-/* أزرار التحميل والأزرار العادية -- خلفية بيضاء ونص غامق دائماً */
+/* ثانياً: بطاقة الملفات المرفوعة داخل الـ File Uploader لمنع تحولها للأسود */
+div[data-testid="stUploadedFile"] {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+div[data-testid="stUploadedFile"] * {
+    color: #1e293b !important;
+}
+
+/* أزرار التحميل والأزرار العادية */
 .stDownloadButton button, .stButton button {
     background-color: #ffffff !important;
     color: #1e3a8a !important;
@@ -215,7 +246,7 @@ ul[data-baseweb="menu"] li:hover {
 }
 [data-testid="stFileUploaderDropzone"] * { color: #1e293b !important; }
 
-/* أزرار الراديو (طريقة الإدخال) */
+/* أزرار الراديو */
 div[data-baseweb="radio"] label, div[role="radiogroup"] label { color: #1e293b !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -317,9 +348,6 @@ def section_header(css_class, icon, text):
 
 
 def sidebar_params(inputs: list, outputs: list, file_types: list):
-    """
-    يعرض بالهامش (بعد اختيار نوع التفاعل): عنوان ПАРАМЕТРЫ ثم المدخلات ثم النواتج ثم أنواع الملفات.
-    """
     st.sidebar.markdown('<div class="sidebar-params-title">ПАРАМЕТРЫ</div>', unsafe_allow_html=True)
 
     st.sidebar.markdown("**📥 Входные данные (столбцы):**")
@@ -335,10 +363,6 @@ def sidebar_params(inputs: list, outputs: list, file_types: list):
 
 
 def handle_file_upload(uploaded_file, key_prefix: str):
-    """
-    يقرأ ملف (Excel أو CSV). إذا كان Excel وفيه أكثر من صفحة، يظهر اختيار الصفحة
-    بالهامش (فقط بهاي الحالة). يرجع DataFrame أو None.
-    """
     file_extension = uploaded_file.name.split('.')[-1].lower()
 
     if file_extension == 'csv':
@@ -359,7 +383,6 @@ def handle_file_upload(uploaded_file, key_prefix: str):
 
 
 def input_method_choice(key_prefix: str) -> str:
-    """Обязательный выбор: загрузка файла или ручной ввод -- для всех разделов."""
     return st.radio(
         "Способ ввода данных:",
         ["📁 Загрузить файл", "✏️ Ввести данные вручную"],
@@ -368,7 +391,7 @@ def input_method_choice(key_prefix: str) -> str:
 
 
 # =============================================================================
-# قسم 1: الفوتوكاتاليز -- بدون اختيار موديل (ZO + PFO + PSO مع بعض)
+# قسم 1: الفوتوكاتاليز
 # =============================================================================
 def render_photocatalysis():
     sidebar_params(
@@ -532,7 +555,7 @@ def render_photocatalysis():
 
 
 # =============================================================================
-# قسم 2: التحفيز المتجانس -- لازم اختيار موديل
+# قسم 2: التحفيز المتجانس
 # =============================================================================
 HOMO_MODEL_INFO = {
     "Power-law (степенной закон)": {
@@ -795,7 +818,7 @@ def render_homogeneous():
 
 
 # =============================================================================
-# قسمين لسا ما اشتغلنا عليهم (محفوظين متل ما كانوا)
+# الأقسام الجاري تطويرها
 # =============================================================================
 def render_placeholder(section_name: str):
     sidebar_params(
@@ -811,14 +834,17 @@ def render_placeholder(section_name: str):
 # MAIN
 # =============================================================================
 def main():
+    # تعديل: فصل عنوان الموقع والأسماء في مستطيلات منفردة ومستقلة
     st.markdown("""
-    <div class="main-header">
+    <div class="main-header-title">
          <h1>Анализ кинетического моделирования</h1>
-         <p>АВТОР: Алсади К. &nbsp;|&nbsp;РУКОВОДИТЕЛЬ: Киреева А.В</p>
+    </div>
+    <div class="main-header-authors">
+         <p>АВТОР: Алсади К. &nbsp;|&nbsp; РУКОВОДИТЕЛЬ: Киреева А.В</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # 1) اختيار نوع التفاعل -- بالهامش، أول عنصر
+    # اختيار نوع التفاعل من القائمة الجانبية
     reaction_type = st.sidebar.selectbox(
         "🛠️ Тип процесса / реакции",
         options=[
@@ -843,4 +869,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

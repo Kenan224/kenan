@@ -289,7 +289,7 @@ def main():
         else:
             default_data = pd.DataFrame({'т, мин': [0.0], 'А': [0.0]})
             edited_data = st.data_editor(default_data, num_rows="dynamic", use_container_width=True, key="manual_ed")
-            if not edited_data.empty && 'А' in edited_data.columns && len(edited_data) > 0 && edited_data.iloc[0]['А'] > 0:
+            if not edited_data.empty and 'А' in edited_data.columns and len(edited_data) > 0 and edited_data.iloc[0]['А'] > 0:
                 edited_data['А0'] = edited_data.iloc[0]['А']
                 valid_data = edited_data[(edited_data['А'] > 0) & (edited_data['т, мин'] >= 0)].copy()
                 if not valid_data.empty:

@@ -27,7 +27,7 @@ st.set_page_config(
 )
 
 # =============================================================================
-# CSS -- التحديث الشامل للأحجام وتكبير العنوان وتنسيق الألوان
+# CSS -- التحديث الشامل للأحجام وتنسيق الألوان
 # =============================================================================
 st.markdown("""
 <style>
@@ -110,21 +110,14 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
     font-size: 1.1rem !important;
 }
 
-/* 3) الهيدر الرئيسي - تم تكبيره هنا ليكون ضخماً وواضحاً */
+/* الهيدر الرئيسي */
 .main-header-title {
     background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-    padding: 3.2rem;
+    padding: 2rem;
     border-radius: 12px;
     margin-bottom: 0.6rem;
     box-shadow: 0 4px 15px rgba(30, 64, 175, 0.2);
     text-align: center;
-}
-.main-header-title h1 {
-    margin: 0;
-    font-weight: 700;
-    font-size: 5.2rem !important; /* حجم كبير جداً للعنوان */
-    color: #ffffff !important;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* مستطيل منفرد ومنفصل تماماً للأسماء والمعلومات */
@@ -272,10 +265,9 @@ section[data-testid="stSidebar"] { background-color: #ffffff !important; }
 # دوال مساعدة عامة وتنسيق المخططات البيانية
 # =============================================================================
 def apply_axis_style(ax):
-    """دالة موحدة لمنع تداخل أرقام المحاور وإعطائها مظهراً متناسقاً متباعداً"""
-    ax.xaxis.set_major_locator(MaxNLocator(5))  # حد أقصى 5 قيم على المحور الأفقي لمنع الالتصاق
-    ax.yaxis.set_major_locator(MaxNLocator(5))  # حد أقصى 5 قيم على المحور الرأسي
-    ax.tick_params(axis='x', rotation=15, labelsize=8.5) # تدوير بسيط لمنع التداخل تماماً
+    ax.xaxis.set_major_locator(MaxNLocator(5))
+    ax.yaxis.set_major_locator(MaxNLocator(5))
+    ax.tick_params(axis='x', rotation=15, labelsize=8.5)
     ax.tick_params(axis='y', labelsize=8.5)
     ax.grid(True, linestyle='--', alpha=0.6)
 
@@ -519,11 +511,9 @@ def render_photocatalysis():
         st.markdown(section_header("sh-viz", "📊", "Графика"), unsafe_allow_html=True)
         fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
         
-        # لتعديل محاور هذا الجرافيك منعاً للتداخل
         for ax in fig_main.get_axes():
             apply_axis_style(ax)
 
-        # توسيط جرافيك الفوتوكاتاليز في منتصف الصفحة تماماً
         col_side1, col_chart_photo, col_side2 = st.columns([1, 2, 1])
         with col_chart_photo:
             st.pyplot(fig_main)
@@ -590,7 +580,6 @@ def render_homogeneous():
 
     h_df = clean_homogeneous_data(h_df)
 
-    # 1) مـوديل الـ Power-law
     if homo_model == "Power-law (степенной закон)":
         if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'r']):
             st.error("❌ **Ошибка структуры!**")
@@ -620,10 +609,9 @@ def render_homogeneous():
             ax.set_xlabel('Фактор концентраций', fontsize=8.5)
             ax.set_ylabel('Скорость (r)', fontsize=8.5)
             
-            apply_axis_style(ax) # تطبيق التنسيق والتباعد لمنع تداخل الأرقام
+            apply_axis_style(ax)
             ax.legend(fontsize=7.5)
             
-            # توسيط الجرافيك تماماً في منتصف الشاشة
             col_side1, col_chart_pl, col_side2 = st.columns([1, 2, 1])
             with col_chart_pl:
                 st.pyplot(fig)
@@ -644,7 +632,6 @@ def render_homogeneous():
 
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
-    # 2) مـوديل Arrhenius
     elif homo_model == "Arrhenius":
         if not all(c in h_df.columns for c in ['T', 'k']): return
         try:
@@ -670,10 +657,9 @@ def render_homogeneous():
             ax.set_xlabel('1/T (1/K)', fontsize=8.5)
             ax.set_ylabel('ln(k)', fontsize=8.5)
             
-            apply_axis_style(ax) # تطبيق التنسيق والتدوير الفريد لمنع تداخل أرقام الكسور الطويلة تماماً
+            apply_axis_style(ax)
             ax.legend(fontsize=7.5)
             
-            # توسيط جرافيك معادلة أرينيوس بالمنتصف تماماً
             col_side1, col_chart_arr, col_side2 = st.columns([1, 2, 1])
             with col_chart_arr:
                 st.pyplot(fig)
@@ -694,7 +680,6 @@ def render_homogeneous():
 
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
-    # 3) مـوديل التفاعلات المتتالية (Последовательные реакции)
     elif homo_model == "Последовательные реакции":
         if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'CC']): return
         try:
@@ -729,7 +714,6 @@ def render_homogeneous():
             c1.markdown(f'<div class="performance-metric">¼ k₁ = {k1_fit:.4f}</div>', unsafe_allow_html=True)
             c2.markdown(f'<div class="performance-metric">½ k₂ = {k2_fit:.4f}</div>', unsafe_allow_html=True)
             c3.markdown(f'<div class="performance-metric">📊 R² = {r2_final:.4f}</div>', unsafe_allow_html=True)
-            # تم إلحاق النسبة المئوية % هنا لهذ الموديل بناءً على طلبك ليتوحد مع البقية
             c4.markdown(f'<div class="performance-metric">📈 RMSE = {rmse_val:.2f}%</div>', unsafe_allow_html=True)
             c5.markdown(f'<div class="performance-metric">🔝 CB,max={CB_max_val:.3f} ({t_max_val:.1f} мин)</div>', unsafe_allow_html=True)
 
@@ -744,15 +728,13 @@ def render_homogeneous():
             ax.set_xlabel('Время (t)', fontsize=8.5)
             ax.set_ylabel('Концентрация (C)', fontsize=8.5)
             
-            apply_axis_style(ax) # تطبيق التنسيق والتباعد لمنع تداخل الأرقام
+            apply_axis_style(ax)
             ax.legend(fontsize=7.5)
             
-            # توسيط جرافيك التفاعلات المتتالية بالمنتصف تماماً
             col_side1, col_chart_cons, col_side2 = st.columns([1, 2, 1])
             with col_chart_cons:
                 st.pyplot(fig)
 
-            # إضافة علامة % في جدول البيانات المخصص للتحميل أيضاً لتوحيد المنظر تماماً
             results_summary = pd.DataFrame({
                 'Параметр / Метрика': ['Константа скорости k1', 'Константа скорости k2', 'Коэффициент детерминации (R²)', 'Ошибка (RMSE, %)', 'Макс. концентрация B (CB,max)', 'Время достижения макс. конц. (t_max)'],
                 'Значение': [float(k1_fit), float(k2_fit), float(r2_final), float(rmse_val), float(CB_max_val), float(t_max_val)]
@@ -778,9 +760,12 @@ def render_placeholder(section_name: str):
 # MAIN ENTRYPOINT
 # =============================================================================
 def main():
+    # تعديل الحجم واللون مباشرة باستخدام الستايل المباشر (Inline Style) ليصبح بحجم 5.2rem ولون أبيض ناصع
     st.markdown("""
     <div class="main-header-title">
-         <h1>Анализ кинетического моделирования</h1>
+         <h1 style="font-size: 5.2rem !important; color: #ffffff !important; margin: 0; font-weight: 700; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); line-height: 1.2;">
+             Анализ кинетического моделирования
+         </h1>
     </div>
     <div class="main-header-authors">
          <p>АВТОР: Алсади К. &nbsp;|&nbsp; РУКОВОДИТЕЛЬ: Киреева А.В</p>

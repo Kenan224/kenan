@@ -49,7 +49,7 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
     border-radius: 12px;
     margin-bottom: 1.2rem;
     box-shadow: 0 4px 15px rgba(30, 64, 175, 0.2);
-    text-align: right;
+    text-align: center;
 }
 .main-header h1 {
     margin: 0;
@@ -813,11 +813,8 @@ def render_placeholder(section_name: str):
 def main():
     st.markdown("""
     <div class="main-header">
- <h1>Анализ кинетического моделирования</h1>
-       
-        
-        <p>АВТОР: Алсади К. &nbsp;|&nbsp;
-        РУКОВОДИТЕЛЬ: Киреева А.В</p>
+         <h1>Анализ кинетического моделирования</h1>
+         <p>АВТОР: Алсади К. &nbsp;|&nbsp;РУКОВОДИТЕЛЬ: Киреева А.В</p>
     </div>
     """, unsafe_allow_html=True)
 

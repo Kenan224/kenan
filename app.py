@@ -409,7 +409,7 @@ def input_method_choice(key_prefix: str) -> str:
     )
 
 # =============================================================================
-# قسم 1: الفوتوكاتاليز
+# قسم 1: الفوتوكاتاليز (لم يتم لمسه)
 # =============================================================================
 def render_photocatalysis():
     sidebar_params(
@@ -540,7 +540,7 @@ def render_photocatalysis():
         st.error(f"❌ Ошибка моделирования: {str(e)}")
 
 # =============================================================================
-# قسم 2: التحفيز المتجانس
+# قسم 2: التحفيز المتجانس (لم يتم لمسه)
 # =============================================================================
 HOMO_MODEL_INFO = {
     "Power-law (степенной закон)": {
@@ -760,10 +760,254 @@ def render_homogeneous():
 
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
-def render_placeholder(section_name: str):
-    sidebar_params(inputs=["— в разработке —"], outputs=["— в разработке —"], file_types=["Excel (.xlsx)", "CSV (.csv)"])
-    st.markdown(section_header("sh-data", "🚧", f"{section_name}"), unsafe_allow_html=True)
-    st.info(f"Раздел «{section_name}» находится в разработке.")
+# =============================================================================
+# قسم 3: التحفيز غير المتجانس (Гетерогенный катализ)
+# =============================================================================
+def render_heterogeneous():
+    sidebar_params(
+        inputs=["С (концентрация реагента)", "r (скорость реакции)"],
+        outputs=["k, K — параметры Langmuir-Hinshelwood", "k, θ — параметры Eley-Rideal", "R², RMSE — метрики качества", "Аппроксимационные графики моделирования"],
+        file_types=["Excel (.xlsx)", "CSV (.csv)"]
+    )
+
+    st.markdown(section_header("sh-data", "📊", "Ввод данных (Гетерогенный катализ)"), unsafe_allow_html=True)
+    method = input_method_choice("hetero")
+
+    het_df = None
+    if method == "📁 Загрузить файл":
+        uploaded_file = st.file_uploader("Выберите файл Excel/CSV", type=['xlsx', 'csv'], key="hetero_upload")
+        if uploaded_file is not None:
+            try:
+                het_df = handle_file_upload(uploaded_file, "hetero")
+            except Exception as e:
+                st.error(f"❌ Ошибка загрузки файла: {str(e)}")
+    else:
+        # بيانات افتراضية بناءً على مثال تفكك بيروكسيد الهيدروجين
+        default_data = pd.DataFrame({
+            'C': [0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
+            'r': [0.02, 0.07, 0.11, 0.15, 0.19, 0.21]
+        })
+        st.markdown("**Заполните экспериментальные данные (C и r):**")
+        het_df = st.data_editor(default_data, use_container_width=True, num_rows="dynamic", key="hetero_manual_ed")
+
+    if het_df is None or het_df.empty:
+        return
+
+    # تنظيف وتجهيز الأعمدة تلقائياً لـ C و r
+    het_df = het_df.dropna().copy()
+    het_df.columns = [str(c).strip() for c in het_df.columns]
+    
+    # محاولة إيجاد الأعمدة تلقائياً
+    c_col = [c for c in het_df.columns if str(c).lower() in ['c', 'ca', 'cb', 'концентрация']][0] if any(str(c).lower() in ['c', 'ca', 'cb', 'концентрация'] for c in het_df.columns) else het_df.columns[0]
+    r_col = [c for c in het_df.columns if str(c).lower() in ['r', 'v', 'rate', 'скорость']][0] if any(str(c).lower() in ['r', 'v', 'rate', 'скорость'] for c in het_df.columns) else het_df.columns[1]
+
+    C_data = pd.to_numeric(het_df[c_col], errors='coerce').values
+    r_data = pd.to_numeric(het_df[r_col], errors='coerce').values
+
+    mask = (C_data > 0) & (r_data > 0)
+    C_data, r_data = C_data[mask], r_data[mask]
+
+    if len(C_data) < 2:
+        st.warning("⚠️ Недостаточно валидных точек данных для аппроксимации (требуется как минимум 2 точки).")
+        return
+
+    try:
+        # 1. Модель Ленгмюра-Хиншелвуда: r = (k * K * C) / (1 + K * C)
+        def lh_model(C, k, K):
+            return (k * K * C) / (1.0 + K * C)
+
+        popt_lh, _ = curve_fit(lh_model, C_data, r_data, p0=[max(r_data), 1.0], bounds=(0, np.inf))
+        k_lh, K_lh = popt_lh[0], popt_lh[1]
+        r_pred_lh = lh_model(C_data, k_lh, K_lh)
+        r2_lh, _ = calculate_metrics(r_data, r_pred_lh)
+        rmse_lh = np.sqrt(np.mean((r_data - r_pred_lh) ** 2))
+
+        # 2. Модель Или-Ридила: r = k * theta * C حيث يتم تقدير k و theta ضمن الحدود الفيزيائية
+        def er_model(C, k, theta):
+            return k * theta * C
+
+        popt_er, _ = curve_fit(er_model, C_data, r_data, p0=[max(r_data)/max(C_data), 0.5], bounds=(0, [np.inf, 1.0]))
+        k_er, theta_er = popt_er[0], popt_er[1]
+        r_pred_er = er_model(C_data, k_er, theta_er)
+        r2_er, _ = calculate_metrics(r_data, r_pred_er)
+        rmse_er = np.sqrt(np.mean((r_data - r_pred_er) ** 2))
+
+        # عرض النتائج بشكل كروت مقارنة مدمجة
+        st.markdown(section_header("sh-results", "📋", "Результаты кинетического анализа"), unsafe_allow_html=True)
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            st.markdown(f'<div class="model-card mc-pfo"><h3>1. Langmuir-Hinshelwood</h3><p><strong>k (константа скорости):</strong> {k_lh:.4f}</p><p><strong>K (константа адсорбции):</strong> {K_lh:.4f}</p><p><strong>R²:</strong> {r2_lh:.4f}</p><p><strong>RMSE:</strong> {rmse_lh:.5f}</p></div>', unsafe_allow_html=True)
+        with col_m2:
+            st.markdown(f'<div class="model-card mc-pso"><h3>2. Eley-Rideal</h3><p><strong>k (константа скорости):</strong> {k_er:.4f}</p><p><strong>θ (степень заполнения):</strong> {theta_er:.4f}</p><p><strong>R²:</strong> {r2_er:.4f}</p><p><strong>RMSE:</strong> {rmse_er:.5f}</p></div>', unsafe_allow_html=True)
+
+        # المخططات البيانية للموديلات
+        st.markdown(section_header("sh-viz", "📊", "Графическое сравнение кинетических моделей"), unsafe_allow_html=True)
+        fig, ax = plt.subplots(figsize=(5.5, 3.2))
+        ax.scatter(C_data, r_data, color='#ef4444', label='Эксперимент (Данные)', s=35, zorder=3)
+        
+        C_fine = np.linspace(0.001, max(C_data) * 1.1, 300)
+        ax.plot(C_fine, lh_model(C_fine, k_lh, K_lh), color='#2563eb', linestyle='-', linewidth=2, label='Langmuir-Hinshelwood')
+        ax.plot(C_fine, er_model(C_fine, k_er, theta_er), color='#16a34a', linestyle='--', linewidth=2, label='Eley-Rideal')
+        
+        ax.set_xlabel('Концентрация реагента (C)', fontsize=9.5)
+        ax.set_ylabel('Скорость реакции (r)', fontsize=9.5)
+        apply_axis_style(ax)
+        ax.legend(fontsize=8.5, loc='best')
+
+        col_side1, col_chart_het, col_side2 = st.columns([1, 2, 1])
+        with col_chart_het:
+            st.pyplot(fig)
+
+        # تجهيز وتحميل البيانات للتقرير
+        res_summary = pd.DataFrame({
+            'Модель': ['Langmuir-Hinshelwood', 'Eley-Rideal'],
+            'k': [float(k_lh), float(k_er)],
+            'K / θ': [float(K_lh), float(theta_er)],
+            'R²': [float(r2_lh), float(r2_er)],
+            'RMSE': [float(rmse_lh), float(rmse_er)]
+        })
+        
+        st.markdown(section_header("sh-download", "📥", "Экспорт аналитических отчетов"), unsafe_allow_html=True)
+        d_col1, d_col2 = st.columns(2)
+        with d_col1:
+            st.download_button("📊 Скачать таблицу параметров (Excel)", data=convert_df_to_excel(res_summary), file_name="heterogeneous_catalysis_results.xlsx", use_container_width=True, key="dl_excel_het")
+        with d_col2:
+            png_b = BytesIO()
+            fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
+            png_b.seek(0)
+            st.download_button("🖼️ Скачать график аппроксимации (PNG)", data=png_b, file_name="heterogeneous_catalysis_plot.png", mime="image/png", use_container_width=True, key="dl_png_het")
+
+    except Exception as e:
+        st.error(f"❌ Критическая ошибка расчета кинетики: {str(e)}")
+
+# =============================================================================
+# قسم 4: التفاعلات الإنزيمية (Ферментативные реакции)
+# =============================================================================
+def render_enzymatic():
+    sidebar_params(
+        inputs=["[S] (концентрация субстрата)", "v (начальная скорость реакции)"],
+        outputs=["Vmax, Km — параметры Michaelis-Menten", "Vmax, K0.5, n — параметры кинетики Hill", "R², RMSE — точность расчета", "Анализ типа кооперативности субстрата"],
+        file_types=["Excel (.xlsx)", "CSV (.csv)"]
+    )
+
+    st.markdown(section_header("sh-data", "📊", "Ввод данных (Ферментативные реакции)"), unsafe_allow_html=True)
+    method = input_method_choice("enzymatic")
+
+    enz_df = None
+    if method == "📁 Загрузить файл":
+        uploaded_file = st.file_uploader("Выберите файл Excel/CSV", type=['xlsx', 'csv'], key="enz_upload")
+        if uploaded_file is not None:
+            try:
+                enz_df = handle_file_upload(uploaded_file, "enzymatic")
+            except Exception as e:
+                st.error(f"❌ Ошибка загрузки файла: {str(e)}")
+    else:
+        # بيانات افتراضية ممتازة مبنية على منحنى مايكل ميتن وتأثير هيل التعاوني
+        default_data = pd.DataFrame({
+            '[S]': [0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
+            'v': [1.2, 2.1, 3.2, 4.5, 5.1, 5.4]
+        })
+        st.markdown("**Заполните данные кинетики ферментов ([S] и v):**")
+        enz_df = st.data_editor(default_data, use_container_width=True, num_rows="dynamic", key="enz_manual_ed")
+
+    if enz_df is None or enz_df.empty:
+        return
+
+    enz_df = enz_df.dropna().copy()
+    enz_df.columns = [str(c).strip() for c in enz_df.columns]
+
+    s_col = [c for c in enz_df.columns if str(c).lower() in ['s', '[s]', 'субстрат']][0] if any(str(c).lower() in ['s', '[s]', 'субстрат'] for c in enz_df.columns) else enz_df.columns[0]
+    v_col = [c for c in enz_df.columns if str(c).lower() in ['v', 'r', 'rate', 'скорость']][0] if any(str(c).lower() in ['v', 'r', 'rate', 'скорость'] for c in enz_df.columns) else enz_df.columns[1]
+
+    S_data = pd.to_numeric(enz_df[s_col], errors='coerce').values
+    v_data = pd.to_numeric(enz_df[v_col], errors='coerce').values
+
+    mask = (S_data > 0) & (v_data > 0)
+    S_data, v_data = S_data[mask], v_data[mask]
+
+    if len(S_data) < 3:
+        st.warning("⚠️ Недостаточно точек для полной идентификации параметров модели Хилла (требуется не менее 3 точек).")
+        return
+
+    try:
+        # 1. Модель Михаэлиса-Ментен: v = (Vmax * S) / (Km + S)
+        def mm_model(S, Vmax, Km):
+            return (Vmax * S) / (Km + S)
+
+        popt_mm, _ = curve_fit(mm_model, S_data, v_data, p0=[max(v_data), np.median(S_data)], bounds=(0, np.inf))
+        Vmax_mm, Km_mm = popt_mm[0], popt_mm[1]
+        v_pred_mm = mm_model(S_data, Vmax_mm, Km_mm)
+        r2_mm, _ = calculate_metrics(v_data, v_pred_mm)
+        rmse_mm = np.sqrt(np.mean((v_data - v_pred_mm) ** 2))
+
+        # 2. Модель Хилла: v = (Vmax * S^n) / (K05^n + S^n)
+        def hill_model(S, Vmax, K05, n):
+            return (Vmax * (S ** n)) / ((K05 ** n) + (S ** n))
+
+        popt_hill, _ = curve_fit(hill_model, S_data, v_data, p0=[max(v_data), np.median(S_data), 1.0], bounds=(0, [np.inf, np.inf, 10.0]))
+        Vmax_hl, K05_hl, n_hl = popt_hill[0], popt_hill[1], popt_hill[2]
+        v_pred_hl = hill_model(S_data, Vmax_hl, K05_hl, n_hl)
+        r2_hill, _ = calculate_metrics(v_data, v_pred_hl)
+        rmse_hill = np.sqrt(np.mean((v_data - v_pred_hl) ** 2))
+
+        # ميزة إضافية ذكية: تحديد نوع التعاونية بناءً على قيمة معامل هيل
+        if n_hl > 1.05:
+            coop_status = "Положительная кооперативность (n > 1)"
+            coop_color = "highlight-success"
+        elif n_hl < 0.95:
+            coop_status = "Отрицательная кооперативность (n < 1)"
+            coop_color = "mb-rose"
+        else:
+            coop_status = "Отсутствие кооперативности (n ≈ 1, Кинетика Михаэлиса-Ментен)"
+            coop_color = "mb-blue"
+
+        st.markdown(section_header("sh-results", "📋", "Кинетические параметры ферментативной реакции"), unsafe_allow_html=True)
+        
+        # كرت مخصص لتحليل معامل هيل
+        st.markdown(f'<div class="{coop_color}" style="padding:0.8rem; margin-bottom:1rem; border-radius:10px; font-weight:bold; text-align:center;">🧬 Характер связывания субстрата: {coop_status}</div>', unsafe_allow_html=True)
+        
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            st.markdown(f'<div class="model-card mc-pfo"><h3>1. Michaelis-Menten</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_mm:.4f}</p><p><strong>Km (константа Михаэлиса):</strong> {Km_mm:.4f}</p><p><strong>R²:</strong> {r2_mm:.4f}</p><p><strong>RMSE:</strong> {rmse_mm:.5f}</p></div>', unsafe_allow_html=True)
+        with col_m2:
+            st.markdown(f'<div class="model-card mc-pso"><h3>2. Hill Model</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_hl:.4f}</p><p><strong>K₀.₅ (полунасыщение):</strong> {K05_hl:.4f}</p><p><strong>n (коэффициент Хилла):</strong> {n_hl:.4f}</p><p><strong>R²:</strong> {r2_hill:.4f}</p><p><strong>RMSE:</strong> {rmse_hill:.5f}</p></div>', unsafe_allow_html=True)
+
+        # رسم منحنى مايكل ميتن وهيل
+        st.markdown(section_header("sh-viz", "📊", "Графики кинетических кривых ферментов"), unsafe_allow_html=True)
+        fig, ax = plt.subplots(figsize=(5.5, 3.2))
+        ax.scatter(S_data, v_data, color='#ef4444', label='Эксперимент', s=35, zorder=3)
+        
+        S_fine = np.linspace(0.001, max(S_data) * 1.15, 300)
+        ax.plot(S_fine, mm_model(S_fine, Vmax_mm, Km_mm), color='#2563eb', linestyle='-', linewidth=2, label='Michaelis-Menten')
+        ax.plot(S_fine, hill_model(S_fine, Vmax_hl, K05_hl, n_hl), color='#a855f7', linestyle='-.', linewidth=2, label='Hill Model')
+        
+        ax.set_xlabel('Концентрация субстрата [S]', fontsize=9.5)
+        ax.set_ylabel('Начальная скорость (v)', fontsize=9.5)
+        apply_axis_style(ax)
+        ax.legend(fontsize=8.5, loc='best')
+
+        col_side1, col_chart_enz, col_side2 = st.columns([1, 2, 1])
+        with col_chart_enz:
+            st.pyplot(fig)
+
+        # إعداد تقرير التنزيل
+        res_summary = pd.DataFrame({
+            'Кинетический параметр': ['Vmax (Michaelis-Menten)', 'Km (Michaelis-Menten)', 'Vmax (Hill)', 'K0.5 (Hill)', 'n (Hill coefficient)', 'R² (Michaelis-Menten)', 'R² (Hill)'],
+            'Значение': [float(Vmax_mm), float(Km_mm), float(Vmax_hl), float(K05_hl), float(n_hl), float(r2_mm), float(r2_hill)]
+        })
+
+        st.markdown(section_header("sh-download", "📥", "Экспорт отчетов"), unsafe_allow_html=True)
+        d_col1, d_col2 = st.columns(2)
+        with d_col1:
+            st.download_button("📊 Скачать кинетический отчет (Excel)", data=convert_df_to_excel(res_summary), file_name="enzymatic_kinetics_results.xlsx", use_container_width=True, key="dl_excel_enz")
+        with d_col2:
+            png_b = BytesIO()
+            fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
+            png_b.seek(0)
+            st.download_button("🖼️ Скачать профиль скоростей (PNG)", data=png_b, file_name="enzymatic_kinetics_plot.png", mime="image/png", use_container_width=True, key="dl_png_enz")
+
+    except Exception as e:
+        st.error(f"❌ Ошибка математической оптимизации: {str(e)}")
 
 # =============================================================================
 # MAIN ENTRYPOINT
@@ -792,9 +1036,9 @@ def main():
     elif reaction_type == "Гомогенный катализ":
         render_homogeneous()
     elif reaction_type == "Гетерогенный катализ":
-        render_placeholder("Гетерогенный катализ")
+        render_heterogeneous()
     elif reaction_type == "Ферментативные реакции":
-        render_placeholder("Ферментативные реакции")
+        render_enzymatic()
 
 if __name__ == "__main__":
     main()

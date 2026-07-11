@@ -26,15 +26,21 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Professional CSS styling (Restored to original custom classes only)
+# Professional Custom CSS styling matching the original video and light background
 st.markdown("""
 <style>
+/* Reset main content background to clean light color */
+.stApp {
+    background-color: #f8fafc;
+}
+
 .main-header {
     background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-    padding: 2rem;
+    padding: 1.8rem;
     border-radius: 12px;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 20px rgba(30, 64, 175, 0.15);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(30, 64, 175, 0.15);
+    text-align: center;
 }
 
 .main-header h1 {
@@ -46,54 +52,78 @@ st.markdown("""
 
 .info-card {
     background: white;
-    padding: 1.2rem;
-    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    border-radius: 10px;
     margin-bottom: 1.5rem;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     border: 1px solid #e2e8f0;
 }
 
-.summary-stat {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border: 1px solid #f59e0b;
-    padding: 1.2rem;
+.metric-box-yellow {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
     border-radius: 10px;
-    margin: 0.8rem 0;
-    color: #92400e !important;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
-
-.summary-stat h3 {
+.metric-box-yellow h4 {
+    margin: 0;
+    color: #b45309 !important;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.metric-box-yellow h2 {
     margin: 0.3rem 0 0 0;
     color: #78350f !important;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.metric-box-blue {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.metric-box-blue h4 {
+    margin: 0;
+    color: #1d4ed8 !important;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.metric-box-blue h2 {
+    margin: 0.3rem 0 0 0;
+    color: #1e40af !important;
+    font-size: 1.5rem;
+    font-weight: 700;
 }
 
 .performance-metric {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    background: #ecfdf5;
     border: 1px solid #10b981;
-    padding: 1rem;
-    border-radius: 10px;
-    margin: 0.5rem 0;
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin: 0.4rem 0;
     color: #047857 !important;
     font-weight: 600;
 }
 
-.section-header-data { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; padding: 1rem; border-radius: 10px; border-left: 5px solid #3b82f6; margin-bottom: 1rem; }
-.section-header-results { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); color: #047857; padding: 1rem; border-radius: 10px; border-left: 5px solid #10b981; margin-bottom: 1rem; }
-.section-header-analysis { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; padding: 1rem; border-radius: 10px; border-left: 5px solid #f59e0b; margin-bottom: 1rem; }
-.section-header-visualization { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #7c3aed; padding: 1rem; border-radius: 10px; border-left: 5px solid #a855f7; margin-bottom: 1rem; }
+.section-header-data { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; padding: 0.8rem 1.2rem; border-radius: 10px; border-left: 5px solid #3b82f6; margin-bottom: 1rem; }
+.section-header-results { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); color: #047857; padding: 0.8rem 1.2rem; border-radius: 10px; border-left: 5px solid #10b981; margin-bottom: 1rem; }
+.section-header-analysis { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; padding: 0.8rem 1.2rem; border-radius: 10px; border-left: 5px solid #f59e0b; margin-bottom: 1rem; }
+.section-header-visualization { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #7c3aed; padding: 0.8rem 1.2rem; border-radius: 10px; border-left: 5px solid #a855f7; margin-bottom: 1rem; }
+.section-header-download { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #991b1b; padding: 0.8rem 1.2rem; border-radius: 10px; border-left: 5px solid #ef4444; margin-bottom: 1rem; margin-top: 1.5rem; }
 
-.section-header-data h2, .section-header-results h2, .section-header-analysis h2, .section-header-visualization h2 {
+.section-header-data h2, .section-header-results h2, .section-header-analysis h2, .section-header-visualization h2, .section-header-download h2 {
     color: inherit !important;
     margin: 0;
+    font-size: 1.4rem;
 }
 
 .highlight-success { background: #dcfce7; border: 1px solid #22c55e; border-radius: 12px; padding: 1rem; margin: 1rem 0; color: #14532d; }
-
-.model-title {
-    color: #1e293b !important;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -115,13 +145,11 @@ def convert_df_to_excel(df):
 
 
 def clean_homogeneous_data(df):
-    """دالة مطورة تم فيها فصل وفحص T الكبيرة لمنع تداخلها مع t الصغيرة وإصلاح أرهينيوس"""
     if df is None or df.empty:
         return df
     
     df = df.copy()
     
-    # إصلاح مشكلة الأسطر الفارغة التي تجعل الباندا يقرأ الأعمدة كـ Unnamed
     if any('Unnamed' in str(col) for col in df.columns):
         for i in range(min(5, len(df))):
             row_values = [str(x).strip().lower() for x in df.iloc[i].dropna()]
@@ -133,7 +161,6 @@ def clean_homogeneous_data(df):
                 df.columns = new_headers
                 break
     
-    # حل مشكلة الـ CSV المدمج بفواصل منقوطة تلقائياً
     if len(df.columns) == 1:
         first_col = str(df.columns[0])
         for sep in [';', '\t']:
@@ -143,7 +170,6 @@ def clean_homogeneous_data(df):
                 df = pd.DataFrame(rows, columns=header_parts)
                 break
 
-    # التعرف الذكي والشامل على أسماء الأعمدة مع الفصل الصارم بين T و t
     new_columns = []
     for col in df.columns:
         c = str(col).strip().lower()
@@ -160,16 +186,13 @@ def clean_homogeneous_data(df):
             new_columns.append('r')
         elif 'k' in c_clean and c_clean != 'tk':
             new_columns.append('k')
-        # الفحص الصارم لدرجة الحرارة أولاً لمنع الفخ القديم
         elif 'temp' in c_clean or 'темп' in c_clean or c_clean == 'tk' or str(col).strip() in ['T', 'Т']:
             new_columns.append('T')
-        # فحص الزمن بعد التأكد أنه ليس درجة حرارة
         elif 'time' in c_clean or 'время' in c_clean or c_clean in ['t', 'т']:
             new_columns.append('t')
         else:
             new_columns.append(col)
             
-    # إعادة بناء الجدول بالكامل لتجنب مشاكل الفهارس المتداخلة في الباندا
     cleaned_dict = {}
     for i in range(len(df.columns)):
         col_name = new_columns[i]
@@ -198,8 +221,8 @@ def main():
 
     st.markdown("""
     <div class="info-card">
-        <p style="margin:0; font-size:14px; color:#475569;">
-            <strong>СТУДЕНТ:</strong>  &nbsp;&nbsp;|&nbsp;&nbsp; 
+        <p style="margin:0; font-size:15px; color:#334155;">
+            <strong>СТУДЕНТ:</strong> Алсади К. &nbsp;&nbsp;|&nbsp;&nbsp; 
             <strong>РУКОВОДИТЕЛЬ:</strong> Киреева А.В
         </p>
     </div>
@@ -224,12 +247,18 @@ def main():
     # =========================================================================
     if reaction_type == "Фотокаталитические реакции":
         with st.sidebar:
-            st.header("⚙️ Параметры процесса")
-            st.info("Тип: Фотокатализ")
-            st.markdown("---")
+            st.markdown("### 📋 Требования к файлу")
             st.markdown("""
             * **`т, мин`** (Время в минутах)
             * **`А`** (Оптическая плотность)
+            
+            ### Опциональные столбцы:
+            * **`А0`** (Начальная Оптическая плотность) - если отсутствует, используется первое значение А
+            * **`А/А0`** (Отношение А/А0) - рассчитывается автоматически если отсутствует
+            
+            ### Поддерживаемые форматы:
+            * Excel (.xlsx)
+            * CSV (.csv) с автоопределением разделителя
             """)
             st.markdown("---")
             
@@ -239,7 +268,7 @@ def main():
                 key="photo_sheet"
             )
 
-        st.markdown('<div class="section-header-data"><h2>📊 Ввод данных (Фотокатализ)</h2></div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header-data"><h2>📊 Ввод данных</h2></div>', unsafe_allow_html=True)
         input_method = st.radio("Выберите способ ввода данных:", ["Загрузить файл", "Ввести данные вручную"], index=0, horizontal=True)
 
         df = None
@@ -301,15 +330,29 @@ def main():
             processed_df = preprocess_data(df)
             summary = get_data_summary(processed_df)
             
-            st.markdown('<div class="section-header-analysis"><h2>📈 Сводка данных</h2></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header-analysis"><h2>📊 Сводка данных</h2></div>', unsafe_allow_html=True)
             col1, col2, col3, col4 = st.columns(4)
-            col1.markdown(f'<div class="summary-stat">📊 Точки<br><h3>{summary["total_points"]}</h3></div>', unsafe_allow_html=True)
-            col2.markdown(f'<div class="summary-stat">⏱️ Время<br><h3>{summary["time_range"][0]:.1f}-{summary["time_range"][1]:.1f} мин</h3></div>', unsafe_allow_html=True)
-            col3.markdown(f'<div class="summary-stat">🧪 А0<br><h3>{summary["a0_value"]:.3f}</h3></div>', unsafe_allow_html=True)
-            col4.markdown(f'<div class="summary-stat">📊 Диапазон A/A0<br><h3>{summary["a_a0_range"][0]:.3f}-{summary["a_a0_range"][1]:.3f}</h3></div>', unsafe_allow_html=True)
+            with col1:
+                st.markdown(f'<div class="metric-box-yellow"><h4>Действительные точки</h4><h2>{summary["total_points"]}</h2></div>', unsafe_allow_html=True)
+            with col2:
+                st.markdown(f'<div class="metric-box-yellow"><h4>Диапазон времени</h4><h2>{summary["time_range"][0]:.1f}-{summary["time_range"][1]:.1f} мин</h2></div>', unsafe_allow_html=True)
+            with col3:
+                st.markdown(f'<div class="metric-box-yellow"><h4>Начальная концентрация</h4><h2>{summary["a0_value"]:.3f}</h2></div>', unsafe_allow_html=True)
+            with col4:
+                st.markdown(f'<div class="metric-box-yellow"><h4>Диапазон А/А0</h4><h2>{summary["a_a0_range"][0]:.3f}-{summary["a_a0_range"][1]:.3f}</h2></div>', unsafe_allow_html=True)
 
             stable_indices = find_stable_points(processed_df['ln_A_A0'], processed_df['т, мин'], 0.1)
             selected_data = processed_df.iloc[stable_indices].copy()
+
+            st.markdown('<div class="section-header-analysis" style="background: linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%); color: #9f1239; border-left-color: #f43f5e;"><h2>📌 Выбранные точки</h2></div>', unsafe_allow_html=True)
+            col_pts1, col_pts2 = st.columns(2)
+            with col_pts1:
+                st.markdown(f'<div class="metric-box-blue"><h4>Выбранные точки данных</h4><h2>{len(selected_data)} из {len(processed_df)}</h2></div>', unsafe_allow_html=True)
+            with col_pts2:
+                if not selected_data.empty:
+                    st.markdown(f'<div class="metric-box-blue"><h4>Временной диапазон</h4><h2>{selected_data["т, мин"].min():.1f} - {selected_data["т, мин"].max():.1f} мин</h2></div>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div class="metric-box-blue"><h4>Временной диапазон</h4><h2>0.0 мин</h2></div>', unsafe_allow_html=True)
 
             try:
                 k0, zo_predictions, mape_zo, r2_zo = fit_zo_model(selected_data)
@@ -320,20 +363,50 @@ def main():
                 results_summary = create_results_summary(k0, k1, k2, mape_zo, mape_pfo, mape_pso, r2_zo, r2_pfo, r2_pso)
                 st.dataframe(results_summary, use_container_width=True)
 
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.markdown('<p class="model-title">🟣 Модель ZO</p>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="performance-metric">⚡ k₀ = {abs(k0):.5f}</div><div class="performance-metric">📊 R² = {r2_zo:.4f}</div><div class="performance-metric">📈 MAPE = {mape_zo:.2f}%</div>', unsafe_allow_html=True)
-                with col2:
-                    st.markdown('<p class="model-title">🔵 Модель PFO</p>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="performance-metric">⚡ k₁ = {abs(k1):.5f}</div><div class="performance-metric">📊 R² = {r2_pfo:.4f}</div><div class="performance-metric">📈 MAPE = {mape_pfo:.2f}%</div>', unsafe_allow_html=True)
-                with col3:
-                    st.markdown('<p class="model-title">🟢 Модель PSO</p>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="performance-metric">⚡ k₂ = {k2:.5f}</div><div class="performance-metric">📊 R² = {r2_pso:.4f}</div><div class="performance-metric">📈 MAPE = {mape_pso:.2f}%</div>', unsafe_allow_html=True)
+                st.markdown('<div class="section-header-results" style="background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%); color: #0f766e; border-left-color: #0d9488;"><h2>⚖️ Сравнение моделей</h2></div>', unsafe_allow_html=True)
+                col_m1, col_m2, col_m3 = st.columns(3)
+                with col_m1:
+                    st.markdown(f"""
+                    <div class="info-card" style="border-left: 5px solid #cbd5e1;">
+                        <h3 style="color:#0f172a; margin:0 0 0.5rem 0;">Модель ZO</h3>
+                        <p style="margin: 0.3rem 0; color:#334155;"><strong>Коэффициент k₀:</strong> {abs(k0):.5f}</p>
+                        <p style="margin: 0.3rem 0; color:#334155;"><strong>R² Score:</strong> {r2_zo:.4f}</p>
+                        <p style="margin: 0.3rem 0; color:#334155;"><strong>MAPE (%):</strong> {mape_zo:.2f}%</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col_m2:
+                    st.markdown(f"""
+                    <div class="info-card" style="border-left: 5px solid #3b82f6; background-color: #f0f6ff;">
+                        <h3 style="color:#1e40af; margin:0 0 0.5rem 0;">Модель PFO</h3>
+                        <p style="margin: 0.3rem 0; color:#1e3a8a;"><strong>Коэффициент k₁:</strong> {abs(k1):.5f} мин⁻¹</p>
+                        <p style="margin: 0.3rem 0; color:#1e3a8a;"><strong>R² Score:</strong> {r2_pfo:.4f}</p>
+                        <p style="margin: 0.3rem 0; color:#1e3a8a;"><strong>MAPE (%):</strong> {mape_pfo:.2f}%</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col_m3:
+                    st.markdown(f"""
+                    <div class="info-card" style="border-left: 5px solid #10b981; background-color: #f0fdf4;">
+                        <h3 style="color:#166534; margin:0 0 0.5rem 0;">Модель PSO</h3>
+                        <p style="margin: 0.3rem 0; color:#14532d;"><strong>Коэффициент k₂:</strong> {k2:.5f} л/(мг·мин)</p>
+                        <p style="margin: 0.3rem 0; color:#14532d;"><strong>R² Score:</strong> {r2_pso:.4f}</p>
+                        <p style="margin: 0.3rem 0; color:#14532d;"><strong>MAPE (%):</strong> {mape_pso:.2f}%</p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
                 st.markdown('<div class="section-header-visualization"><h2>📊 Графика</h2></div>', unsafe_allow_html=True)
                 fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
                 st.pyplot(fig_main)
+
+                # Download section at the bottom
+                st.markdown('<div class="section-header-download"><h2>📥 Скачать результаты</h2></div>', unsafe_allow_html=True)
+                d_col1, d_col2 = st.columns(2)
+                with d_col1:
+                    png_b = BytesIO()
+                    fig_main.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
+                    png_b.seek(0)
+                    st.download_button("📥 Скачать график как изображение (PNG)", data=png_b, file_name="kinetic_plots.png", mime="image/png", use_container_width=True)
+                with d_col2:
+                    st.download_button("📥 Скачать результаты расчета (Excel)", data=convert_df_to_excel(results_summary), file_name="kinetic_analysis_results.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
 
             except Exception as e:
                 st.error(f"Ошибка моделирования: {str(e)}")
@@ -350,15 +423,27 @@ def main():
         )
 
         with st.sidebar:
-            st.header("⚙️ Параметры процесса")
-            st.info("Тип: Гомогенный катализ")
-            st.markdown("---")
+            st.markdown("### 📋 Требования к файлу")
             if homo_model == "Power-law (степенной закон)":
-                st.markdown("### 📋 Требуемые столбцы:\n- `t` — время\n- `CA` — конц. А\n- `CB` — конц. B\n- `r` — скорость")
+                st.markdown("""
+                Обязательные столбцы:
+                * **`t`** — время
+                * **`CA`** — конц. А
+                * **`CB`** — конц. B
+                * **`r`** — скорость
+                """)
             elif homo_model == "Arrhenius":
-                st.markdown("### 📋 Требуемые столбцы:\n- `T` — темп. (K)\n- `k` — константа")
+                st.markdown("""
+                Обязательные столбцы:
+                * **`T`** — темп. (K)
+                * **`k`** — константа скорости
+                """)
             else:
-                st.markdown("### 📋 Требуемые столбцы:\n- `t` — время\n- `CA`, `CB`, `CC`")
+                st.markdown("""
+                Обязательные столбцы:
+                * **`t`** — время
+                * **`CA`**, **`CB`**, **`CC`** — конц. веществ
+                """)
             st.markdown("---")
             selected_sheet_homo = st.selectbox("Выберите лист Excel", options=["Лист 1", "Основной расчет"], key="homo_sheet")
 
@@ -381,188 +466,4 @@ def main():
                     st.error(f"Ошибка загрузки файла: {str(e)}")
         else:
             if homo_model == "Power-law (степенной закон)":
-                empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=[[0.0, 0.0, 0.0, 0.0]])
-            elif homo_model == "Arrhenius":
-                empty_df = pd.DataFrame(columns=['T', 'k'], data=[[0.0, 0.0]])
-            else:
-                empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'CC'], data=[[0.0, 0.0, 0.0, 0.0]])
-            
-            st.markdown("**Заполните таблицу данными:**")
-            h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
-
-        # التنظيف التلقائي الآمن الخالي من التداخلات
-        if h_df is not None and len(h_df) > 0:
-            h_df = clean_homogeneous_data(h_df)
-
-            # 1. СТЕПЕННОЙ ЗАКОН (Power-law)
-            if homo_model == "Power-law (степенной закон)":
-                if st.button("🚀 Выполнить кинетический расчет (Power-law)"):
-                    required_cols = ['t', 'CA', 'CB', 'r']
-                    missing_cols = [c for c in required_cols if c not in h_df.columns]
-                    if missing_cols:
-                        st.error(f"❌ **Ошибка структуры!** Не найдены столбцы: `{missing_cols}`. Пожалуйста, проверьте заголовки файла.")
-                        return
-                    
-                    try:
-                        valid_mask = (h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)
-                        clean_df = h_df[valid_mask]
-                        if clean_df.empty:
-                            st.warning("Пожалуйста, введите корректные числовые значения (больше нуля).")
-                            return
-
-                        log_CA = np.log(clean_df['CA'].values)
-                        log_CB = np.log(clean_df['CB'].values)
-                        log_r = np.log(clean_df['r'].values)
-                        
-                        X = np.column_stack((np.ones_like(log_CA), log_CA, log_CB))
-                        beta_matrix, _, _, _ = np.linalg.lstsq(X, log_r, rcond=None)
-                        
-                        k_val = np.exp(beta_matrix[0])
-                        alpha_val = beta_matrix[1]
-                        beta_val = beta_matrix[2]
-                        
-                        r_pred = k_val * (clean_df['CA'].values**alpha_val) * (clean_df['CB'].values**beta_val)
-                        r2, mape = calculate_metrics(clean_df['r'].values, r_pred)
-                        
-                        st.markdown('<div class="section-header-results"><h2>📋 Сводка результатов (Power-law)</h2></div>', unsafe_allow_html=True)
-                        c1, c2, c3, c4, c5 = st.columns(5)
-                        c1.markdown(f'<div class="performance-metric">⚡ k = {k_val:.4f}</div>', unsafe_allow_html=True)
-                        c2.markdown(f'<div class="performance-metric">🔸 α = {alpha_val:.2f}</div>', unsafe_allow_html=True)
-                        c3.markdown(f'<div class="performance-metric">🔹 β = {beta_val:.2f}</div>', unsafe_allow_html=True)
-                        c4.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
-                        c5.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
-                        
-                        st.markdown('<div class="section-header-visualization"><h2>📊 График линейной зависимости скорости</h2></div>', unsafe_allow_html=True)
-                        fig, ax = plt.subplots(figsize=(10, 4.5))
-                        x_linear = (clean_df['CA'].values**alpha_val) * (clean_df['CB'].values**beta_val)
-                        
-                        ax.scatter(x_linear, clean_df['r'].values, color='red', s=60, zorder=3, label='Эксперимент')
-                        ax.plot(x_linear, r_pred, color='#1e40af', linestyle='-', linewidth=2, label=f'Модель (k = {k_val:.4f})')
-                        ax.set_xlabel(r'Фактор концентраций ($C_A^\alpha \cdot C_B^\beta$)')
-                        ax.set_ylabel('Скорость реакции (r)')
-                        ax.legend()
-                        ax.grid(True, linestyle='--', alpha=0.6)
-                        st.pyplot(fig)
-
-                        st.markdown("---")
-                        b1, b2 = st.columns(2)
-                        with b1:
-                            png_b = BytesIO()
-                            fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
-                            png_b.seek(0)
-                            st.download_button("📥 Скачать график (PNG)", data=png_b, file_name="power_law_plot.png", mime="image/png", use_container_width=True)
-                        with b2:
-                            res_df = pd.DataFrame({'Параметр': ['k', 'alpha', 'beta', 'R2', 'MAPE (%)'], 'Значение': [k_val, alpha_val, beta_val, r2, mape]})
-                            st.download_button("📥 Скачать результаты (Excel)", data=convert_df_to_excel(res_df), file_name="power_law_results.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Ошибка расчета: {str(e)}")
-
-            # 2. ARRHENIUS MODEL
-            elif homo_model == "Arrhenius":
-                if st.button("🚀 Выполнить кинетический расчет (Arrhenius)"):
-                    required_cols = ['T', 'k']
-                    missing_cols = [c for c in required_cols if c not in h_df.columns]
-                    if missing_cols:
-                        st.error(f"❌ **Ошибка в структуре данных!** Отсутствуют столбцы: `{missing_cols}`.")
-                        return
-
-                    try:
-                        valid_mask = (h_df['T'] > 0) & (h_df['k'] > 0)
-                        clean_df = h_df[valid_mask]
-                        if clean_df.empty:
-                            st.warning("Пожалуйста, введите корректные числовые значения.")
-                            return
-
-                        R = 8.314
-                        inv_T = 1.0 / clean_df['T'].values
-                        log_k = np.log(clean_df['k'].values)
-                        
-                        slope, intercept = np.polyfit(inv_T, log_k, 1)
-                        Ea_val = -slope * R / 1000.0
-                        A_val = np.exp(intercept)
-                        
-                        k_pred = A_val * np.exp(- (Ea_val * 1000.0) / (R * clean_df['T'].values))
-                        r2, mape = calculate_metrics(clean_df['k'].values, k_pred)
-                        
-                        st.markdown('<div class="section-header-results"><h2>📋 Сводка результатов (Arrhenius)</h2></div>', unsafe_allow_html=True)
-                        c1, c2, c3, c4 = st.columns(4)
-                        c1.markdown(f'<div class="performance-metric">🧪 A = {A_val:.2e}</div>', unsafe_allow_html=True)
-                        c2.markdown(f'<div class="performance-metric">🔥 Ea = {Ea_val:.2f} кДж/моль</div>', unsafe_allow_html=True)
-                        c3.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
-                        c4.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
-                        
-                        fig, ax = plt.subplots(figsize=(10, 4.5))
-                        ax.scatter(inv_T, log_k, color='red', s=60, zorder=3, label='Эксперимент')
-                        ax.plot(inv_T, slope*inv_T + intercept, color='#10b981', linewidth=2, label='Линейная аппроксимация')
-                        ax.set_xlabel('1/T (1/K)')
-                        ax.set_ylabel('ln(k)')
-                        ax.legend()
-                        ax.grid(True, linestyle='--', alpha=0.6)
-                        st.pyplot(fig)
-                    except Exception as e:
-                        st.error(f"Ошибка расчета: {str(e)}")
-
-            # 3. ПОСЛЕДОВАТЕЛЬНЫЕ РЕАКЦИИ
-            elif homo_model == "Последовательные реакции":
-                if st.button("🚀 Выполнить кинетический расчет (Последовательные реакции)"):
-                    required_cols = ['t', 'CA', 'CB', 'CC']
-                    missing_cols = [c for c in required_cols if c not in h_df.columns]
-                    if missing_cols:
-                        st.error(f"❌ **Ошибка в структуре данных!** Отсутствуют столбцы: `{missing_cols}`")
-                        return
-
-                    try:
-                        t_data = h_df['t'].values
-                        CA_data = h_df['CA'].values
-                        
-                        def fit_A(t, k1):
-                            return CA_data[0] * np.exp(-k1 * t)
-                        
-                        popt1, _ = curve_fit(fit_A, t_data, CA_data, p0=[0.05])
-                        k1_fit = popt1[0]
-                        
-                        def fit_B(t, k2):
-                            return (k1_fit * CA_data[0] / (k2 - k1_fit)) * (np.exp(-k1_fit * t) - np.exp(-k2 * t))
-                        
-                        popt2, _ = curve_fit(fit_B, t_data, h_df['CB'].values, p0=[0.02])
-                        k2_fit = popt2[0]
-                        
-                        CA_pred = fit_A(t_data, k1_fit)
-                        CB_pred = fit_B(t_data, k2_fit)
-                        CC_pred = CA_data[0] - CA_pred - CB_pred
-                        
-                        r2_A, mape_A = calculate_metrics(CA_data, CA_pred)
-                        r2_B, mape_B = calculate_metrics(h_df['CB'].values, CB_pred)
-                        total_r2 = (r2_A + r2_B) / 2.0
-                        total_mape = (mape_A + mape_B) / 2.0
-                        
-                        st.markdown('<div class="section-header-results"><h2>📋 Сводка результатов (Последовательные реакции)</h2></div>', unsafe_allow_html=True)
-                        c1, c2, c3, c4 = st.columns(4)
-                        c1.markdown(f'<div class="performance-metric">🟣 k₁ = {k1_fit:.4f}</div>', unsafe_allow_html=True)
-                        c2.markdown(f'<div class="performance-metric">🔵 k₂ = {k2_fit:.4f}</div>', unsafe_allow_html=True)
-                        c3.markdown(f'<div class="performance-metric">📊 Средний R² = {total_r2:.4f}</div>', unsafe_allow_html=True)
-                        c4.markdown(f'<div class="performance-metric">📈 Средний MAPE = {total_mape:.2f}%</div>', unsafe_allow_html=True)
-                        
-                        fig, ax = plt.subplots(figsize=(10, 4.5))
-                        ax.plot(t_data, CA_data, 'ro', label='A (Эксп)')
-                        ax.plot(t_data, CA_pred, 'r-', linewidth=2, label='A (Модель)')
-                        ax.plot(t_data, h_df['CB'].values, 'go', label='B (Эксп)')
-                        ax.plot(t_data, CB_pred, 'g-', linewidth=2, label='B (Модель)')
-                        ax.plot(t_data, h_df['CC'].values, 'bo', label='C (Эксп)')
-                        ax.plot(t_data, CC_pred, 'b-', linewidth=2, label='C (Модель)')
-                        ax.set_xlabel('Время (t)')
-                        ax.set_ylabel('Концентрация (C)')
-                        ax.legend()
-                        ax.grid(True, linestyle='--', alpha=0.6)
-                        st.pyplot(fig)
-                    except Exception as e:
-                        st.error(f"Ошибка расчета: {str(e)}")
-
-    elif reaction_type == "Гетерогенный катализ":
-        st.info("Раздел 'Гетерогенный катализ'")
-    elif reaction_type == "Ферментативные реакции":
-        st.info("Раздел 'Ферментативные реакции'")
-
-
-if __name__ == "__main__":
-    main()
+                empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=

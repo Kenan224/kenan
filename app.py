@@ -120,6 +120,15 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
     text-align: center;
 }
 
+/* حل جذري: إجبار أي عنصر أو نص داخلي للعنوان على حجم 3.5rem واللون الأبيض */
+.main-header-title,
+.main-header-title * {
+    color: #ffffff !important;
+    font-size: 3.5rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+}
+
 /* مستطيل منفرد ومنفصل تماماً للأسماء والمعلومات */
 .main-header-authors {
     background: #eff6ff;
@@ -760,10 +769,10 @@ def render_placeholder(section_name: str):
 # MAIN ENTRYPOINT
 # =============================================================================
 def main():
-    # تعديل الحجم واللون مباشرة باستخدام الستايل المباشر (Inline Style) ليصبح بحجم 5.2rem ولون أبيض ناصع
+    # تعديل الحجم إلى 3.5rem واللون إلى الأبيض الناصع بشكل مباشر وقوي
     st.markdown("""
     <div class="main-header-title">
-         <h1 style="font-size: 5.2rem !important; color: #ffffff !important; margin: 0; font-weight: 700; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); line-height: 1.2;">
+         <h1 style="font-size: 3.5rem !important; color: #ffffff !important; margin: 0; font-weight: 700; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); line-height: 1.2;">
              Анализ кинетического моделирования
          </h1>
     </div>

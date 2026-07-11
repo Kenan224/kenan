@@ -124,7 +124,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
 .main-header-title,
 .main-header-title * {
     color: #ffffff !important;
-    font-size: 3.5rem !important;
+    font-size: 3rem !important;
     font-weight: 700 !important;
     line-height: 1.2 !important;
 }

@@ -171,6 +171,52 @@ section[data-testid="stSidebar"] * { color: #1e293b !important; }
     padding-bottom: 0.3rem;
     border-bottom: 2px solid #2563eb;
 }
+
+/* ============================================================= */
+/* تثبيت قسري: القوائم المنسدلة (selectbox) دايماً بخلفية بيضاء   */
+/* هاد يمنع مشكلة "الخلفية السوداء" مهما كان ثيم المتصفح/الجهاز    */
+/* ============================================================= */
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] div[data-baseweb="input"] {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #1e293b !important;
+}
+div[data-baseweb="select"] span, div[data-baseweb="select"] div { color: #1e293b !important; }
+
+/* قائمة الخيارات المنسدلة نفسها (لما تنفتح) */
+ul[data-baseweb="menu"], div[data-baseweb="popover"] div {
+    background-color: #ffffff !important;
+}
+ul[data-baseweb="menu"] li {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+}
+ul[data-baseweb="menu"] li:hover {
+    background-color: #eff6ff !important;
+}
+
+/* أزرار التحميل والأزرار العادية -- خلفية بيضاء ونص غامق دائماً */
+.stDownloadButton button, .stButton button {
+    background-color: #ffffff !important;
+    color: #1e3a8a !important;
+    border: 1.5px solid #2563eb !important;
+    font-weight: 600 !important;
+}
+.stDownloadButton button:hover, .stButton button:hover {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+/* حقول رفع الملفات وجداول تعديل البيانات */
+[data-testid="stFileUploaderDropzone"] {
+    background-color: #f8fafc !important;
+    border: 1.5px dashed #94a3b8 !important;
+}
+[data-testid="stFileUploaderDropzone"] * { color: #1e293b !important; }
+
+/* أزرار الراديو (طريقة الإدخال) */
+div[data-baseweb="radio"] label, div[role="radiogroup"] label { color: #1e293b !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -313,9 +359,9 @@ def handle_file_upload(uploaded_file, key_prefix: str):
 
 
 def input_method_choice(key_prefix: str) -> str:
-    """اختيار إجباري: تحميل ملف أو إدخال يدوي -- إلزامي بكل الأقسام."""
+    """Обязательный выбор: загрузка файла или ручной ввод -- для всех разделов."""
     return st.radio(
-        "طريقة إدخال البيانات / Способ ввода данных:",
+        "Способ ввода данных:",
         ["📁 Загрузить файл", "✏️ Ввести данные вручную"],
         index=0, horizontal=True, key=f"input_method_{key_prefix}"
     )
@@ -387,7 +433,7 @@ def render_photocatalysis():
 
     processed_df = preprocess_data(df)
     if processed_df.empty:
-        st.warning("⚠️ لا توجد بيانات صالحة للتحليل بعد المعالجة.")
+        st.warning("⚠️ Нет допустимых данных для анализа после обработки.")
         return
     summary = get_data_summary(processed_df)
 
@@ -559,7 +605,7 @@ def render_homogeneous():
             valid_mask = (h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)
             clean_df = h_df[valid_mask]
             if clean_df.empty:
-                st.warning("⚠️ لا توجد بيانات صالحة.")
+                st.warning("⚠️ Нет допустимых данных для расчёта.")
                 return
 
             log_CA = np.log(clean_df['CA'].values)
@@ -624,7 +670,7 @@ def render_homogeneous():
             valid_mask = (h_df['T'] > 0) & (h_df['k'] > 0)
             clean_df = h_df[valid_mask]
             if clean_df.empty:
-                st.warning("⚠️ لا توجد بيانات صالحة.")
+                st.warning("⚠️ Нет допустимых данных для расчёта.")
                 return
 
             R = 8.314
@@ -753,12 +799,12 @@ def render_homogeneous():
 # =============================================================================
 def render_placeholder(section_name: str):
     sidebar_params(
-        inputs=["— قيد التطوير —"],
-        outputs=["— قيد التطوير —"],
+        inputs=["— в разработке —"],
+        outputs=["— в разработке —"],
         file_types=["Excel (.xlsx)", "CSV (.csv)"]
     )
     st.markdown(section_header("sh-data", "🚧", f"{section_name}"), unsafe_allow_html=True)
-    st.info(f"قسم «{section_name}» لسا قيد التطوير. رح نشتغل عليه لاحقاً.")
+    st.info(f"Раздел «{section_name}» находится в разработке. Скоро будет доступен.")
 
 
 # =============================================================================

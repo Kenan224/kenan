@@ -115,7 +115,7 @@ def convert_df_to_excel(df):
 
 
 def clean_homogeneous_data(df):
-    """دالة مطورة بالكامل لتنظيف الأعمدة وإعادة بنائها لمنع مشاكل عدم القراءة نهائياً"""
+    """دالة مطورة تم فيها فصل وفحص T الكبيرة لمنع تداخلها مع t الصغيرة وإصلاح أرهينيوس"""
     if df is None or df.empty:
         return df
     
@@ -143,7 +143,7 @@ def clean_homogeneous_data(df):
                 df = pd.DataFrame(rows, columns=header_parts)
                 break
 
-    # التعرف الذكي والشامل على أسماء الأعمدة لمنع سقوط عمود السرعة r
+    # التعرف الذكي والشامل على أسماء الأعمدة مع الفصل الصارم بين T و t
     new_columns = []
     for col in df.columns:
         c = str(col).strip().lower()
@@ -158,15 +158,14 @@ def clean_homogeneous_data(df):
             new_columns.append('CC')
         elif any(x in c_clean for x in ['rate', 'скорость', 'скоростьреакции']) or c_clean in ['r', 'w', 'v']:
             new_columns.append('r')
-        elif 'time' in c_clean or 'время' in c_clean or c_clean in ['t', 'т']:
-            if 'temp' in c_clean or c_clean == 't(k)':
-                new_columns.append('T')
-            else:
-                new_columns.append('t')
-        elif 'temp' in c_clean or col == 'T':
-            new_columns.append('T')
-        elif 'k' in c_clean:
+        elif 'k' in c_clean and c_clean != 'tk':
             new_columns.append('k')
+        # الفحص الصارم لدرجة الحرارة أولاً لمنع الفخ القديم
+        elif 'temp' in c_clean or 'темп' in c_clean or c_clean == 'tk' or str(col).strip() in ['T', 'Т']:
+            new_columns.append('T')
+        # فحص الزمن بعد التأكد أنه ليس درجة حرارة
+        elif 'time' in c_clean or 'время' in c_clean or c_clean in ['t', 'т']:
+            new_columns.append('t')
         else:
             new_columns.append(col)
             
@@ -290,7 +289,7 @@ def main():
         else:
             default_data = pd.DataFrame({'т, мин': [0.0], 'А': [0.0]})
             edited_data = st.data_editor(default_data, num_rows="dynamic", use_container_width=True, key="manual_ed")
-            if not edited_data.empty and 'А' in edited_data.columns and len(edited_data) > 0 and edited_data.iloc[0]['А'] > 0:
+            if not edited_data.empty && 'А' in edited_data.columns && len(edited_data) > 0 && edited_data.iloc[0]['А'] > 0:
                 edited_data['А0'] = edited_data.iloc[0]['А']
                 valid_data = edited_data[(edited_data['А'] > 0) & (edited_data['т, мин'] >= 0)].copy()
                 if not valid_data.empty:
@@ -391,7 +390,7 @@ def main():
             st.markdown("**Заполните таблицу данными:**")
             h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
 
-        # التنظيف التلقائي الآمن وإعادة الهيكلة
+        # التنظيف التلقائي الآمن الخالي من التداخلات
         if h_df is not None and len(h_df) > 0:
             h_df = clean_homogeneous_data(h_df)
 

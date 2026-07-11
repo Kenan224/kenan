@@ -1,5 +1,5 @@
 """
-Kinetic modeling functions for PFO and PSO analysis.
+Kinetic modeling functions for ZO, PFO and PSO analysis.
 """
 
 import numpy as np

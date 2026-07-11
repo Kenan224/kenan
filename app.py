@@ -27,22 +27,65 @@ st.set_page_config(
 )
 
 # =============================================================================
-# CSS -- تصميم موحد بتباين ثابت وتعديلات مخصصة لإزالة الخلفيات الغامقة
+# CSS -- الحل الجذري لإلغاء اللون الأسود وإجبار الثيم الفاتح على كافة العناصر
 # =============================================================================
 st.markdown("""
 <style>
-/* خلفية عامة فاتحة موحدة */
-.stApp {
-    background-color: #f5f7fa;
+/* 1) إجبار الجذور والمتغيرات الأساسية لـ Streamlit على الألوان الفاتحة */
+:root, [data-testid="stAppViewContainer"], [data-testid="stSidebar"], .stApp {
+    --background-color: #f5f7fa !important;
+    --secondary-background-color: #ffffff !important;
+    --text-color: #1e293b !important;
+    --primary-color: #2563eb !important;
+    background-color: #f5f7fa !important;
+    color: #1e293b !important;
 }
 
-/* إجبار كل نص افتراضي على لون غامق مقروء دائماً */
-html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSelectbox label,
-.stTextInput label, .stNumberInput label, .stDataFrame, .stFileUploader label {
-    color: #1e293b;
+/* 2) استهداف شامل لجميع حقول الإدخال، القوائم المنسدلة، وبطاقات رفع الملفات لمنع اسودادها */
+div[data-baseweb="select"], 
+div[data-baseweb="popover"], 
+div[role="listbox"], 
+ul[data-baseweb="menu"],
+div[data-testid="stSelectbox"],
+.stSelectbox, 
+input, 
+select, 
+textarea,
+[data-testid="stUploadedFile"],
+[data-testid="stFileUploaderDropzone"] {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border-color: #cbd5e1 !important;
 }
 
-/* 1) الهيدر الرئيسي - مستطيل العنوان فقط */
+/* إجبار النصوص داخل القوائم والمدخلات على اللون الداكن */
+div[data-baseweb="select"] *, 
+div[data-baseweb="popover"] *, 
+div[role="listbox"] *,
+[data-testid="stSelectbox"] *,
+[data-testid="stUploadedFile"] *,
+[data-testid="stFileUploaderDropzone"] * {
+    color: #1e293b !important;
+}
+
+/* خيارات القائمة المنسدلة عند فتحها لتظل بيضاء */
+li[role="option"], [data-baseweb="menu"] li, div[data-baseweb="popover"] div {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+}
+li[role="option"]:hover, [data-baseweb="menu"] li:hover {
+    background-color: #eff6ff !important;
+    color: #1e3a8a !important;
+}
+
+/* إجبار كل نصوص التطبيق العادية على التباين الغامق المقروء */
+html, body, p, span, label, th, td, .stMarkdown, .stRadio label {
+    color: #1e293b !important;
+}
+
+/* 3) الهيدر الرئيسي - مستطيل العنوان فقط */
 .main-header-title {
     background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
     padding: 1.6rem;
@@ -58,7 +101,7 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
     color: #ffffff !important;
 }
 
-/* 2) مستطيل منفرد ومنفصل تماماً للأسماء والمعلومات */
+/* 4) مستطيل منفرد ومنفصل تماماً للأسماء والمعلومات */
 .main-header-authors {
     background: #eff6ff;
     padding: 0.8rem;
@@ -75,7 +118,7 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
     font-size: 0.95rem;
 }
 
-/* كرت معلومات -- خلفية بيضاء + نص غامق دائماً */
+/* كروت المعلومات الكلاسيكية */
 .info-card {
     background: #ffffff;
     padding: 1rem 1.2rem;
@@ -83,11 +126,9 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
     margin-bottom: 1.2rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     border: 1px solid #e2e8f0;
-    color: #1e293b !important;
 }
-.info-card * { color: #1e293b !important; }
 
-/* صناديق المقاييس -- خلفية فاتحة + نص غامق */
+/* صناديق المقاييس الملونة */
 .metric-box {
     border-radius: 10px;
     padding: 0.9rem;
@@ -98,22 +139,21 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
 .metric-box h4 { margin: 0; font-size: 0.85rem; font-weight: 600; }
 .metric-box h2 { margin: 0.3rem 0 0 0; font-size: 1.4rem; font-weight: 700; }
 
-.mb-amber { background: #fffbeb; border-color: #fde68a; }
+.mb-amber { background: #fffbeb !important; border-color: #fde68a !important; }
 .mb-amber h4, .mb-amber h2 { color: #92400e !important; }
 
-.mb-blue { background: #eff6ff; border-color: #bfdbfe; }
+.mb-blue { background: #eff6ff !important; border-color: #bfdbfe !important; }
 .mb-blue h4, .mb-blue h2 { color: #1e40af !important; }
 
-.mb-green { background: #ecfdf5; border-color: #a7f3d0; }
+.mb-green { background: #ecfdf5 !important; border-color: #a7f3d0 !important; }
 .mb-green h4, .mb-green h2 { color: #065f46 !important; }
 
-.mb-rose { background: #fff1f2; border-color: #fecdd3; }
+.mb-rose { background: #fff1f2 !important; border-color: #fecdd3 !important; }
 .mb-rose h4, .mb-rose h2 { color: #9f1239 !important; }
 
-/* شارة نتيجة صغيرة */
 .performance-metric {
-    background: #f0fdf4;
-    border: 1px solid #10b981;
+    background: #f0fdf4 !important;
+    border: 1px solid #10b981 !important;
     padding: 0.7rem;
     border-radius: 8px;
     margin: 0.3rem 0;
@@ -122,7 +162,7 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
     text-align: center;
 }
 
-/* عناوين الأقسام */
+/* عناوين الأقسام المتناسقة */
 .section-header {
     padding: 0.8rem 1.2rem;
     border-radius: 10px;
@@ -131,34 +171,34 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
 }
 .section-header h2 { margin: 0; font-size: 1.25rem; }
 
-.sh-data { background: #eff6ff; border-left-color: #2563eb; }
+.sh-data { background: #eff6ff !important; border-left-color: #2563eb !important; }
 .sh-data h2 { color: #1e3a8a !important; }
 
-.sh-results { background: #ecfdf5; border-left-color: #10b981; }
+.sh-results { background: #ecfdf5 !important; border-left-color: #10b981 !important; }
 .sh-results h2 { color: #065f46 !important; }
 
-.sh-selected { background: #fff1f2; border-left-color: #f43f5e; }
+.sh-selected { background: #fff1f2 !important; border-left-color: #f43f5e !important; }
 .sh-selected h2 { color: #9f1239 !important; }
 
-.sh-compare { background: #f0fdfa; border-left-color: #0d9488; }
+.sh-compare { background: #f0fdfa !important; border-left-color: #0d9488 !important; }
 .sh-compare h2 { color: #115e59 !important; }
 
-.sh-viz { background: #faf5ff; border-left-color: #a855f7; }
+.sh-viz { background: #faf5ff !important; border-left-color: #a855f7 !important; }
 .sh-viz h2 { color: #6b21a8 !important; }
 
-.sh-download { background: #fef2f2; border-left-color: #ef4444; margin-top: 1.2rem; }
+.sh-download { background: #fef2f2 !important; border-left-color: #ef4444 !important; margin-top: 1.2rem; }
 .sh-download h2 { color: #991b1b !important; }
 
 .highlight-success {
-    background: #dcfce7;
-    border: 1px solid #22c55e;
+    background: #dcfce7 !important;
+    border: 1px solid #22c55e !important;
     border-radius: 10px;
     padding: 0.8rem 1rem;
     margin: 0.8rem 0;
     color: #14532d !important;
 }
 
-/* كرت موديل صغير */
+/* كروت الموديلات */
 .model-card {
     border-radius: 10px;
     padding: 1rem;
@@ -167,18 +207,17 @@ html, body, [class*="css"], p, span, label, .stMarkdown, .stRadio label, .stSele
 .model-card h3 { margin: 0 0 0.5rem 0; }
 .model-card p { margin: 0.25rem 0; }
 
-.mc-zo   { background: #f8fafc; border-left-color: #94a3b8; }
+.mc-zo   { background: #f8fafc !important; border-left-color: #94a3b8 !important; }
 .mc-zo   h3, .mc-zo   p { color: #334155 !important; }
 
-.mc-pfo  { background: #eff6ff; border-left-color: #2563eb; }
+.mc-pfo  { background: #eff6ff !important; border-left-color: #2563eb !important; }
 .mc-pfo  h3, .mc-pfo  p { color: #1e3a8a !important; }
 
-.mc-pso  { background: #f0fdf4; border-left-color: #16a34a; }
+.mc-pso  { background: #f0fdf4 !important; border-left-color: #16a34a !important; }
 .mc-pso  h3, .mc-pso  p { color: #14532d !important; }
 
 /* الشريط الجانبي */
-section[data-testid="stSidebar"] { background-color: #ffffff; }
-section[data-testid="stSidebar"] * { color: #1e293b !important; }
+section[data-testid="stSidebar"] { background-color: #ffffff !important; }
 .sidebar-params-title {
     font-size: 1.1rem;
     font-weight: 700;
@@ -188,46 +227,7 @@ section[data-testid="stSidebar"] * { color: #1e293b !important; }
     border-bottom: 2px solid #2563eb;
 }
 
-/* ============================================================= */
-/* حل مشكلة "المستطيلات السوداء" وجعلها فاتحة بالكامل قسرياً     */
-/* ============================================================= */
-/* أولاً: القوائم المنسدلة (selectbox) */
-div[data-testid="stSelectbox"] > div,
-div[data-testid="stSelectbox"] div[data-baseweb="select"],
-div[data-baseweb="select"] > div,
-div[data-baseweb="select"] div[data-baseweb="input"] {
-    background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    color: #1e293b !important;
-}
-div[data-baseweb="select"] span, div[data-baseweb="select"] div { 
-    color: #1e293b !important; 
-}
-
-/* القائمة عند فتح الخيارات */
-ul[data-baseweb="menu"], div[data-baseweb="popover"] div {
-    background-color: #ffffff !important;
-}
-ul[data-baseweb="menu"] li {
-    background-color: #ffffff !important;
-    color: #1e293b !important;
-}
-ul[data-baseweb="menu"] li:hover {
-    background-color: #eff6ff !important;
-}
-
-/* ثانياً: بطاقة الملفات المرفوعة داخل الـ File Uploader لمنع تحولها للأسود */
-div[data-testid="stUploadedFile"] {
-    background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    color: #1e293b !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-div[data-testid="stUploadedFile"] * {
-    color: #1e293b !important;
-}
-
-/* أزرار التحميل والأزرار العادية */
+/* تعديل أزرار التحميل والأزرار العادية لتبقى فاتحة */
 .stDownloadButton button, .stButton button {
     background-color: #ffffff !important;
     color: #1e3a8a !important;
@@ -238,16 +238,6 @@ div[data-testid="stUploadedFile"] * {
     background-color: #2563eb !important;
     color: #ffffff !important;
 }
-
-/* حقول رفع الملفات وجداول تعديل البيانات */
-[data-testid="stFileUploaderDropzone"] {
-    background-color: #f8fafc !important;
-    border: 1.5px dashed #94a3b8 !important;
-}
-[data-testid="stFileUploaderDropzone"] * { color: #1e293b !important; }
-
-/* أزرار الراديو */
-div[data-baseweb="radio"] label, div[role="radiogroup"] label { color: #1e293b !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -349,28 +339,22 @@ def section_header(css_class, icon, text):
 
 def sidebar_params(inputs: list, outputs: list, file_types: list):
     st.sidebar.markdown('<div class="sidebar-params-title">ПАРАМЕТРЫ</div>', unsafe_allow_html=True)
-
-    st.sidebar.markdown("**📥 Входные данные (столбцы):**")
+    st.sidebar.markdown("**📥 Входные данные:**")
     for item in inputs:
         st.sidebar.markdown(f"- {item}")
-
     st.sidebar.markdown("**📤 Выходные данные:**")
     for item in outputs:
         st.sidebar.markdown(f"- {item}")
-
     st.sidebar.markdown("**📁 Поддерживаемые файлы:**")
     st.sidebar.markdown(", ".join(file_types))
 
 
 def handle_file_upload(uploaded_file, key_prefix: str):
     file_extension = uploaded_file.name.split('.')[-1].lower()
-
     if file_extension == 'csv':
         return read_csv_file(uploaded_file)
-
     excel_file = pd.ExcelFile(uploaded_file)
     sheet_names = excel_file.sheet_names
-
     if len(sheet_names) > 1:
         st.sidebar.markdown("**📄 Лист Excel:**")
         selected_sheet = st.sidebar.selectbox(
@@ -378,7 +362,6 @@ def handle_file_upload(uploaded_file, key_prefix: str):
         )
     else:
         selected_sheet = sheet_names[0]
-
     return pd.read_excel(uploaded_file, sheet_name=selected_sheet)
 
 
@@ -395,7 +378,7 @@ def input_method_choice(key_prefix: str) -> str:
 # =============================================================================
 def render_photocatalysis():
     sidebar_params(
-        inputs=["т, мин (время)", "А (оптическая плотность)", "А0 (опционально)", "А/А0 (опционально)"],
+        inputs=["т, мин (время)", "А (оптическая плотность)", "А0 (опционально)"],
         outputs=["k₀, k₁, k₂ — константы скорости", "R², MAPE — метрики качества", "3 графика (ZO, PFO, PSO)"],
         file_types=["Excel (.xlsx)", "CSV (.csv)"]
     )
@@ -420,9 +403,7 @@ def render_photocatalysis():
                     valid_a_mask = (df['А'] > 0) & (~df['А'].isna())
                     if valid_a_mask.any():
                         df['А0'] = df.loc[valid_a_mask, 'А'].iloc[0]
-                        st.markdown(
-                            f'<div class="highlight-success">✅ Автоопределение: А0 = {df["А0"].iloc[0]:.5f}</div>',
-                            unsafe_allow_html=True)
+                        st.markdown(f'<div class="highlight-success">✅ Автоопределение: А0 = {df["А0"].iloc[0]:.5f}</div>', unsafe_allow_html=True)
 
                 if 'А/А0' not in df.columns and 'А' in df.columns and 'А0' in df.columns:
                     df['А/А0'] = df['А'] / df['А0']
@@ -430,8 +411,7 @@ def render_photocatalysis():
                 with st.expander("👁️ Предварительный просмотр данных"):
                     st.dataframe(df, use_container_width=True)
 
-                edited_df = st.data_editor(df[['т, мин', 'А']].copy(), use_container_width=True,
-                                            num_rows="dynamic", key="photo_upload_ed")
+                edited_df = st.data_editor(df[['т, мин', 'А']].copy(), use_container_width=True, num_rows="dynamic", key="photo_upload_ed")
                 if 'А' in edited_df.columns and len(edited_df) > 0 and edited_df.iloc[0]['А'] > 0:
                     edited_df['А0'] = edited_df.iloc[0]['А']
                     edited_df = edited_df[(edited_df['А'] > 0) & (edited_df['т, мин'] >= 0)]
@@ -456,7 +436,7 @@ def render_photocatalysis():
 
     processed_df = preprocess_data(df)
     if processed_df.empty:
-        st.warning("⚠️ Нет допустимых данных для анализа после обработки.")
+        st.warning("⚠️ Нет допустимых данных для анализа.")
         return
     summary = get_data_summary(processed_df)
 
@@ -465,16 +445,11 @@ def render_photocatalysis():
     with col1:
         st.markdown(metric_box("mb-amber", "Действительные точки", summary["total_points"]), unsafe_allow_html=True)
     with col2:
-        st.markdown(metric_box("mb-amber", "Диапазон времени",
-                                f'{summary["time_range"][0]:.1f}-{summary["time_range"][1]:.1f} мин'),
-                    unsafe_allow_html=True)
+        st.markdown(metric_box("mb-amber", "Диапазон времени", f'{summary["time_range"][0]:.1f}-{summary["time_range"][1]:.1f} мин'), unsafe_allow_html=True)
     with col3:
-        st.markdown(metric_box("mb-amber", "Начальная концентрация", f'{summary["a0_value"]:.3f}'),
-                    unsafe_allow_html=True)
+        st.markdown(metric_box("mb-amber", "Начальная концентрация", f'{summary["a0_value"]:.3f}'), unsafe_allow_html=True)
     with col4:
-        st.markdown(metric_box("mb-amber", "Диапазон А/А0",
-                                f'{summary["a_a0_range"][0]:.3f}-{summary["a_a0_range"][1]:.3f}'),
-                    unsafe_allow_html=True)
+        st.markdown(metric_box("mb-amber", "Диапазон А/А0", f'{summary["a_a0_range"][0]:.3f}-{summary["a_a0_range"][1]:.3f}'), unsafe_allow_html=True)
 
     stable_indices = find_stable_points(processed_df['ln_A_A0'], processed_df['т, мин'], 0.1)
     selected_data = processed_df.iloc[stable_indices].copy()
@@ -482,13 +457,10 @@ def render_photocatalysis():
     st.markdown(section_header("sh-selected", "📌", "Выбранные точки"), unsafe_allow_html=True)
     col_pts1, col_pts2 = st.columns(2)
     with col_pts1:
-        st.markdown(metric_box("mb-blue", "Выбранные точки данных", f'{len(selected_data)} из {len(processed_df)}'),
-                    unsafe_allow_html=True)
+        st.markdown(metric_box("mb-blue", "Выбранные точки данных", f'{len(selected_data)} из {len(processed_df)}'), unsafe_allow_html=True)
     with col_pts2:
         if not selected_data.empty:
-            st.markdown(metric_box("mb-blue", "Временной диапазон",
-                                    f'{selected_data["т, мин"].min():.1f} - {selected_data["т, мин"].max():.1f} мин'),
-                        unsafe_allow_html=True)
+            st.markdown(metric_box("mb-blue", "Временной диапазон", f'{selected_data["т, мин"].min():.1f} - {selected_data["т, мин"].max():.1f} мин'), unsafe_allow_html=True)
         else:
             st.markdown(metric_box("mb-blue", "Временной диапазон", "0.0 мин"), unsafe_allow_html=True)
 
@@ -504,52 +476,25 @@ def render_photocatalysis():
         st.markdown(section_header("sh-compare", "⚖️", "Сравнение моделей"), unsafe_allow_html=True)
         col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
-            st.markdown(f"""
-            <div class="model-card mc-zo">
-                <h3>Модель ZO</h3>
-                <p><strong>k₀:</strong> {abs(k0):.5f}</p>
-                <p><strong>R²:</strong> {r2_zo:.4f}</p>
-                <p><strong>MAPE:</strong> {mape_zo:.2f}%</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f'<div class="model-card mc-zo"><h3>Модель ZO</h3><p><strong>k₀:</strong> {abs(k0):.5f}</p><p><strong>R²:</strong> {r2_zo:.4f}</p><p><strong>MAPE:</strong> {mape_zo:.2f}%</p></div>', unsafe_allow_html=True)
         with col_m2:
-            st.markdown(f"""
-            <div class="model-card mc-pfo">
-                <h3>Модель PFO</h3>
-                <p><strong>k₁:</strong> {abs(k1):.5f} мин⁻¹</p>
-                <p><strong>R²:</strong> {r2_pfo:.4f}</p>
-                <p><strong>MAPE:</strong> {mape_pfo:.2f}%</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f'<div class="model-card mc-pfo"><h3>Модель PFO</h3><p><strong>k₁:</strong> {abs(k1):.5f} мин⁻¹</p><p><strong>R²:</strong> {r2_pfo:.4f}</p><p><strong>MAPE:</strong> {mape_pfo:.2f}%</p></div>', unsafe_allow_html=True)
         with col_m3:
-            st.markdown(f"""
-            <div class="model-card mc-pso">
-                <h3>Модель PSO</h3>
-                <p><strong>k₂:</strong> {k2:.5f} л/(мг·мин)</p>
-                <p><strong>R²:</strong> {r2_pso:.4f}</p>
-                <p><strong>MAPE:</strong> {mape_pso:.2f}%</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f'<div class="model-card mc-pso"><h3>Модель PSO</h3><p><strong>k₂:</strong> {k2:.5f} л/(мг·мин)</p><p><strong>R²:</strong> {r2_pso:.4f}</p><p><strong>MAPE:</strong> {mape_pso:.2f}%</p></div>', unsafe_allow_html=True)
 
         st.markdown(section_header("sh-viz", "📊", "Графика"), unsafe_allow_html=True)
-        fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions,
-                                           pso_predictions, k0, k1, k2)
+        fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
         st.pyplot(fig_main)
 
         st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
         d_col1, d_col2 = st.columns(2)
         with d_col1:
-            st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(results_summary),
-                                file_name="kinetic_analysis_results.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                use_container_width=True)
+            st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(results_summary), file_name="kinetic_analysis_results.xlsx", use_container_width=True)
         with d_col2:
             png_b = BytesIO()
             fig_main.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
             png_b.seek(0)
-            st.download_button("🖼️ Скачать графики (PNG)", data=png_b, file_name="kinetic_plots.png",
-                                mime="image/png", use_container_width=True)
-
+            st.download_button("🖼️ Скачать графики (PNG)", data=png_b, file_name="kinetic_plots.png", mime="image/png", use_container_width=True)
     except Exception as e:
         st.error(f"❌ Ошибка моделирования: {str(e)}")
 
@@ -575,12 +520,7 @@ HOMO_MODEL_INFO = {
 
 def render_homogeneous():
     st.markdown("### 📈 Выберите кинетическую модель:")
-    homo_model = st.radio(
-        "Кинетическая модель:",
-        list(HOMO_MODEL_INFO.keys()),
-        index=0, horizontal=True, key="homo_model_choice"
-    )
-
+    homo_model = st.radio("Кинетическая модель:", list(HOMO_MODEL_INFO.keys()), index=0, horizontal=True, key="homo_model_choice")
     info = HOMO_MODEL_INFO[homo_model]
     sidebar_params(inputs=info["inputs"], outputs=info["outputs"], file_types=["Excel (.xlsx)", "CSV (.csv)"])
 
@@ -597,18 +537,11 @@ def render_homogeneous():
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
     else:
         if homo_model == "Power-law (степенной закон)":
-            cols_pl = ['t', 'CA', 'CB', 'r']
-            data_pl = [[0.0, 1.0, 1.5, 0.05], [5.0, 0.8, 1.3, 0.035]]
-            empty_df = pd.DataFrame(columns=cols_pl, data=data_pl)
+            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=[[0.0, 1.0, 1.5, 0.05], [5.0, 0.8, 1.3, 0.035]])
         elif homo_model == "Arrhenius":
-            cols_arr = ['T', 'k']
-            data_arr = [[298.0, 0.01], [308.0, 0.02]]
-            empty_df = pd.DataFrame(columns=cols_arr, data=data_arr)
+            empty_df = pd.DataFrame(columns=['T', 'k'], data=[[298.0, 0.01], [308.0, 0.02]])
         else:
-            cols_seq = ['t', 'CA', 'CB', 'CC']
-            data_seq = [[0.0, 1.0, 0.0, 0.0], [10.0, 0.5, 0.4, 0.1]]
-            empty_df = pd.DataFrame(columns=cols_seq, data=data_seq)
-
+            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'CC'], data=[[0.0, 1.0, 0.0, 0.0], [10.0, 0.5, 0.4, 0.1]])
         st.markdown("**Заполните таблицу данными:**")
         h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
 
@@ -617,35 +550,21 @@ def render_homogeneous():
 
     h_df = clean_homogeneous_data(h_df)
 
-    # ---------------- 1. Power-law ----------------
     if homo_model == "Power-law (степенной закон)":
-        required_cols = ['t', 'CA', 'CB', 'r']
-        missing_cols = [c for c in required_cols if c not in h_df.columns]
-        if missing_cols:
-            st.error(f"❌ **Ошибка структуры!** Не найдены столбцы: `{missing_cols}`.")
+        if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'r']):
+            st.error("❌ **Ошибка структуры!**")
             return
         try:
-            valid_mask = (h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)
-            clean_df = h_df[valid_mask]
-            if clean_df.empty:
-                st.warning("⚠️ Нет допустимых данных для расчёта.")
-                return
-
-            log_CA = np.log(clean_df['CA'].values)
-            log_CB = np.log(clean_df['CB'].values)
-            log_r = np.log(clean_df['r'].values)
-
+            clean_df = h_df[(h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)]
+            if clean_df.empty: return
+            log_CA, log_CB, log_r = np.log(clean_df['CA'].values), np.log(clean_df['CB'].values), np.log(clean_df['r'].values)
             X = np.column_stack((np.ones_like(log_CA), log_CA, log_CB))
             beta_matrix, _, _, _ = np.linalg.lstsq(X, log_r, rcond=None)
-
-            k_val = np.exp(beta_matrix[0])
-            alpha_val = beta_matrix[1]
-            beta_val = beta_matrix[2]
-
+            k_val, alpha_val, beta_val = np.exp(beta_matrix[0]), beta_matrix[1], beta_matrix[2]
             r_pred = k_val * (clean_df['CA'].values ** alpha_val) * (clean_df['CB'].values ** beta_val)
             r2, mape = calculate_metrics(clean_df['r'].values, r_pred)
 
-            st.markdown(section_header("sh-results", "📋", "Сводка результатов (Power-law)"), unsafe_allow_html=True)
+            st.markdown(section_header("sh-results", "📋", "Сводка результатов"), unsafe_allow_html=True)
             c1, c2, c3, c4, c5 = st.columns(5)
             c1.markdown(f'<div class="performance-metric">⚡ k = {k_val:.4f}</div>', unsafe_allow_html=True)
             c2.markdown(f'<div class="performance-metric">🔸 α = {alpha_val:.2f}</div>', unsafe_allow_html=True)
@@ -653,188 +572,91 @@ def render_homogeneous():
             c4.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
             c5.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
 
-            st.markdown(section_header("sh-viz", "📊", "График линейной зависимости скорости"), unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=(6.5, 3.2))
             x_linear = (clean_df['CA'].values ** alpha_val) * (clean_df['CB'].values ** beta_val)
-            ax.scatter(x_linear, clean_df['r'].values, color='#ef4444', s=45, zorder=3, label='Эксперимент')
-            ax.plot(x_linear, r_pred, color='#1e40af', linestyle='-', linewidth=2, label=f'Модель (k = {k_val:.4f})')
-            ax.set_xlabel(r'Фактор концентраций ($C_A^\alpha \cdot C_B^\beta$)')
-            ax.set_ylabel('Скорость реакции (r)')
-            ax.legend()
-            ax.grid(True, linestyle='--', alpha=0.5)
+            ax.scatter(x_linear, clean_df['r'].values, color='#ef4444', label='Эксперимент')
+            ax.plot(x_linear, r_pred, color='#1e40af', label=f'Модель')
+            ax.set_xlabel('Фактор концентраций')
+            ax.set_ylabel('Скорость (r)')
+            ax.legend().set_visible(True)
+            ax.grid(True, linestyle='--')
             st.pyplot(fig)
+        except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
-            st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
-            b1, b2 = st.columns(2)
-            with b1:
-                res_df = pd.DataFrame({'Параметр': ['k', 'alpha', 'beta', 'R2', 'MAPE (%)'],
-                                        'Значение': [k_val, alpha_val, beta_val, r2, mape]})
-                st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(res_df),
-                                    file_name="power_law_results.xlsx",
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    use_container_width=True)
-            with b2:
-                png_b = BytesIO()
-                fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
-                png_b.seek(0)
-                st.download_button("🖼️ Скачать график (PNG)", data=png_b, file_name="power_law_plot.png",
-                                    mime="image/png", use_container_width=True)
-        except Exception as e:
-            st.error(f"❌ Ошибка расчета: {str(e)}")
-
-    # ---------------- 2. Arrhenius ----------------
     elif homo_model == "Arrhenius":
-        required_cols = ['T', 'k']
-        missing_cols = [c for c in required_cols if c not in h_df.columns]
-        if missing_cols:
-            st.error(f"❌ **Ошибка в структуре данных!** Отсутствуют столбцы: `{missing_cols}`.")
-            return
+        if not all(c in h_df.columns for c in ['T', 'k']): return
         try:
-            valid_mask = (h_df['T'] > 0) & (h_df['k'] > 0)
-            clean_df = h_df[valid_mask]
-            if clean_df.empty:
-                st.warning("⚠️ Нет допустимых данных для расчёта.")
-                return
-
+            clean_df = h_df[(h_df['T'] > 0) & (h_df['k'] > 0)]
+            if clean_df.empty: return
             R = 8.314
-            inv_T = 1.0 / clean_df['T'].values
-            log_k = np.log(clean_df['k'].values)
-
+            inv_T, log_k = 1.0 / clean_df['T'].values, np.log(clean_df['k'].values)
             slope, intercept = np.polyfit(inv_T, log_k, 1)
-            Ea_val = -slope * R / 1000.0
-            A_val = np.exp(intercept)
-
+            Ea_val, A_val = -slope * R / 1000.0, np.exp(intercept)
             k_pred = A_val * np.exp(-(Ea_val * 1000.0) / (R * clean_df['T'].values))
             r2, mape = calculate_metrics(clean_df['k'].values, k_pred)
 
-            st.markdown(section_header("sh-results", "📋", "Сводка результатов (Arrhenius)"), unsafe_allow_html=True)
+            st.markdown(section_header("sh-results", "📋", "Сводка результатов"), unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
             c1.markdown(f'<div class="performance-metric">🧪 A = {A_val:.2e}</div>', unsafe_allow_html=True)
             c2.markdown(f'<div class="performance-metric">🔥 Ea = {Ea_val:.2f} кДж/моль</div>', unsafe_allow_html=True)
             c3.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
             c4.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
 
-            st.markdown(section_header("sh-viz", "📊", "График Аррениуса"), unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=(6.5, 3.2))
-            ax.scatter(inv_T, log_k, color='#ef4444', s=45, zorder=3, label='Эксперимент')
-            ax.plot(inv_T, slope * inv_T + intercept, color='#10b981', linewidth=2, label='Линейная аппроксимация')
+            ax.scatter(inv_T, log_k, color='#ef4444', label='Эксперимент')
+            ax.plot(inv_T, slope * inv_T + intercept, color='#10b981')
             ax.set_xlabel('1/T (1/K)')
             ax.set_ylabel('ln(k)')
-            ax.legend()
-            ax.grid(True, linestyle='--', alpha=0.5)
+            ax.grid(True)
             st.pyplot(fig)
+        except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
-            st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
-            b1, b2 = st.columns(2)
-            with b1:
-                res_df = pd.DataFrame({'Параметр': ['A', 'Ea (kJ/mol)', 'R2', 'MAPE (%)'],
-                                        'Значение': [A_val, Ea_val, r2, mape]})
-                st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(res_df),
-                                    file_name="arrhenius_results.xlsx",
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    use_container_width=True)
-            with b2:
-                png_b = BytesIO()
-                fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
-                png_b.seek(0)
-                st.download_button("🖼️ Скачать график (PNG)", data=png_b, file_name="arrhenius_plot.png",
-                                    mime="image/png", use_container_width=True)
-        except Exception as e:
-            st.error(f"❌ Ошибка расчета: {str(e)}")
-
-    # ---------------- 3. Последовательные реакции ----------------
     elif homo_model == "Последовательные реакции":
-        required_cols = ['t', 'CA', 'CB', 'CC']
-        missing_cols = [c for c in required_cols if c not in h_df.columns]
-        if missing_cols:
-            st.error(f"❌ **Ошибка в структуре данных!** Отсутствуют столбцы: `{missing_cols}`")
-            return
+        if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'CC']): return
         try:
-            t_data = h_df['t'].values
-            CA_data = h_df['CA'].values
-
-            def fit_A(t, k1):
-                return CA_data[0] * np.exp(-k1 * t)
-
-            popt1, _ = curve_fit(fit_A, t_data, CA_data, p0=[0.05])
+            t_data, CA_data = h_df['t'].values, h_df['CA'].values
+            popt1, _ = curve_fit(lambda t, k1: CA_data[0] * np.exp(-k1 * t), t_data, CA_data, p0=[0.05])
             k1_fit = popt1[0]
 
             def fit_B(t, k2):
-                term1 = k1_fit * CA_data[0] / (k2 - k1_fit)
-                term2 = np.exp(-k1_fit * t) - np.exp(-k2 * t)
-                return term1 * term2
+                return (k1_fit * CA_data[0] / (k2 - k1_fit)) * (np.exp(-k1_fit * t) - np.exp(-k2 * t))
 
             popt2, _ = curve_fit(fit_B, t_data, h_df['CB'].values, p0=[0.02])
             k2_fit = popt2[0]
 
-            CA_pred = fit_A(t_data, k1_fit)
-            CB_pred = fit_B(t_data, k2_fit)
+            CA_pred, CB_pred = CA_data[0] * np.exp(-k1_fit * t_data), fit_B(t_data, k2_fit)
             CC_pred = CA_data[0] - CA_pred - CB_pred
+            r2_A, _ = calculate_metrics(CA_data, CA_pred)
+            r2_B, _ = calculate_metrics(h_df['CB'].values, CB_pred)
 
-            r2_A, mape_A = calculate_metrics(CA_data, CA_pred)
-            r2_B, mape_B = calculate_metrics(h_df['CB'].values, CB_pred)
-            total_r2 = (r2_A + r2_B) / 2.0
-            total_mape = (mape_A + mape_B) / 2.0
-
-            st.markdown(section_header("sh-results", "📋", "Сводка результатов (Последовательные реакции)"),
-                        unsafe_allow_html=True)
-            c1, c2, c3, c4 = st.columns(4)
+            st.markdown(section_header("sh-results", "📋", "Сводка результатов"), unsafe_allow_html=True)
+            c1, c2, c3 = st.columns(3)
             c1.markdown(f'<div class="performance-metric">🟣 k₁ = {k1_fit:.4f}</div>', unsafe_allow_html=True)
             c2.markdown(f'<div class="performance-metric">🔵 k₂ = {k2_fit:.4f}</div>', unsafe_allow_html=True)
-            c3.markdown(f'<div class="performance-metric">📊 Средний R² = {total_r2:.4f}</div>', unsafe_allow_html=True)
-            c4.markdown(f'<div class="performance-metric">📈 Средний MAPE = {total_mape:.2f}%</div>', unsafe_allow_html=True)
+            c3.markdown(f'<div class="performance-metric">📊 Средний R² = {(r2_A+r2_B)/2:.4f}</div>', unsafe_allow_html=True)
 
-            st.markdown(section_header("sh-viz", "📊", "Кинетический профиль концентраций"), unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=(6.5, 3.2))
-            ax.plot(t_data, CA_data, 'o', color='#ef4444', label='A (Эксп)')
-            ax.plot(t_data, CA_pred, '-', color='#ef4444', linewidth=2, label='A (Модель)')
-            ax.plot(t_data, h_df['CB'].values, 'o', color='#16a34a', label='B (Эксп)')
-            ax.plot(t_data, CB_pred, '-', color='#16a34a', linewidth=2, label='B (Модель)')
-            ax.plot(t_data, h_df['CC'].values, 'o', color='#2563eb', label='C (Эксп)')
-            ax.plot(t_data, CC_pred, '-', color='#2563eb', linewidth=2, label='C (Модель)')
-            ax.set_xlabel('Время (t)')
-            ax.set_ylabel('Концентрация (C)')
+            ax.plot(t_data, CA_data, 'o', color='#ef4444')
+            ax.plot(t_data, CA_pred, '-', color='#ef4444', label='A')
+            ax.plot(t_data, h_df['CB'].values, 'o', color='#16a34a')
+            ax.plot(t_data, CB_pred, '-', color='#16a34a', label='B')
+            ax.plot(t_data, h_df['CC'].values, 'o', color='#2563eb')
+            ax.plot(t_data, CC_pred, '-', color='#2563eb', label='C')
             ax.legend()
-            ax.grid(True, linestyle='--', alpha=0.5)
             st.pyplot(fig)
-
-            st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
-            b1, b2 = st.columns(2)
-            with b1:
-                res_df = pd.DataFrame({'Параметр': ['k1', 'k2', 'Average R2', 'Average MAPE (%)'],
-                                        'Значение': [k1_fit, k2_fit, total_r2, total_mape]})
-                st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(res_df),
-                                    file_name="consecutive_results.xlsx",
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    use_container_width=True)
-            with b2:
-                png_b = BytesIO()
-                fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
-                png_b.seek(0)
-                st.download_button("🖼️ Скачать график (PNG)", data=png_b, file_name="consecutive_plot.png",
-                                    mime="image/png", use_container_width=True)
-        except Exception as e:
-            st.error(f"❌ Ошибка расчета: {str(e)}")
+        except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
 
-# =============================================================================
-# الأقسام الجاري تطويرها
-# =============================================================================
 def render_placeholder(section_name: str):
-    sidebar_params(
-        inputs=["— в разработке —"],
-        outputs=["— в разработке —"],
-        file_types=["Excel (.xlsx)", "CSV (.csv)"]
-    )
+    sidebar_params(inputs=["— в разработке —"], outputs=["— в разработке —"], file_types=["Excel (.xlsx)", "CSV (.csv)"])
     st.markdown(section_header("sh-data", "🚧", f"{section_name}"), unsafe_allow_html=True)
-    st.info(f"Раздел «{section_name}» находится в разработке. Скоро будет доступен.")
+    st.info(f"Раздел «{section_name}» находится в разработке.")
 
 
 # =============================================================================
 # MAIN
 # =============================================================================
 def main():
-    # تعديل: فصل عنوان الموقع والأسماء في مستطيلات منفردة ومستقلة
     st.markdown("""
     <div class="main-header-title">
          <h1>Анализ кинетического моделирования</h1>
@@ -844,17 +666,10 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # اختيار نوع التفاعل من القائمة الجانبية
     reaction_type = st.sidebar.selectbox(
         "🛠️ Тип процесса / реакции",
-        options=[
-            "Фотокаталитические реакции",
-            "Гомогенный катализ",
-            "Гетерогенный катализ",
-            "Ферментативные реакции",
-        ],
-        index=0,
-        key="reaction_type_choice"
+        options=["Фотокаталитические реакции", "Гомогенный катализ", "Гетерогенный катализ", "Ферментативные реакции"],
+        index=0, key="reaction_type_choice"
     )
 
     if reaction_type == "Фотокаталитические реакции":

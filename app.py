@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from io import BytesIO
 
-# Import custom modules (الحفاظ على النظام الأصلي بالكامل)
+# Import custom modules 
 from data_processor import validate_data_structure, preprocess_data, get_data_summary, read_csv_file
 from kinetic_models import (
     find_stable_points, fit_zo_model, fit_pfo_model, fit_pso_model,
@@ -107,33 +107,6 @@ st.markdown("""
     font-weight: 600;
     margin-bottom: 0.5rem;
 }
-
-div[data-testid="stRadio"] label p,
-div[data-testid="stSelectbox"] label p,
-div[data-testid="stWidgetLabel"] p,
-label[data-testid="stWidgetLabel"],
-div[data-testid="stMarkdownContainer"] h3 {
-    color: #1e293b !important;
-    font-weight: 500 !important;
-}
-
-section[data-testid="stSidebar"] p, 
-section[data-testid="stSidebar"] li, 
-section[data-testid="stSidebar"] span, 
-section[data-testid="stSidebar"] label {
-    color: #ffffff !important;
-}
-
-section[data-testid="stSidebar"] h1, 
-section[data-testid="stSidebar"] h2 {
-    color: #ffffff !important;
-}
-
-section[data-testid="stSidebar"] h3,
-section[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] h3 {
-    color: #fde68a !important;
-    font-weight: 600 !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -155,29 +128,63 @@ def convert_df_to_excel(df):
 
 
 def clean_homogeneous_data(df):
-    """دالة مطورة لإصلاح الفواصل العشرية الروسية وتطابق الحروف تلقائياً للتحفيز المتجانس"""
+    """دالة هجومية فائقة لتطهير الفواصل والمسافات الخفية وتوحيد الأعمدة ميكانيكياً"""
     if df is None:
         return None
     
-    # 1. تصحيح أسماء الأعمدة (تحويل الحروف الكيريلية الشبيهة باللاتينية)
-    char_map = {
-        'С': 'C', 'А': 'A', 'В': 'B', 'т': 't', 'р': 'r',
-        'с': 'c', 'а': 'a', 'в': 'b'
-    }
+    df = df.copy()
+    
+    # 1. حل مشكلة الـ CSV الروسي المدمج بفواصل منقوطة تلقائياً
+    if len(df.columns) == 1:
+        first_col = str(df.columns[0])
+        for sep in [';', '\t']:
+            if sep in first_col:
+                header_parts = first_col.split(sep)
+                rows = []
+                for _, row in df.iterrows():
+                    rows.append(str(row.iloc[0]).split(sep))
+                df = pd.DataFrame(rows, columns=header_parts)
+                break
+
+    # 2. التعرف المرن الذكي على الأعمدة (Fuzzy Matching) وتجاوز فخ اللغة والكيريلية
     new_columns = []
     for col in df.columns:
-        col_str = str(col).strip()
-        for cyr, lat in char_map.items():
-            col_str = col_str.replace(cyr, lat)
-        new_columns.append(col_str)
+        c = str(col).strip().lower()
+        # استبدال الحروف الروسية المتطابقة شكلياً مع الإنجليزية
+        c = c.replace('с', 'c').replace('а', 'a').replace('в', 'b').replace('т', 't').replace('р', 'r')
+        
+        if 'ca' in c or 'c_a' in c or 'концентрация a' in c:
+            new_columns.append('CA')
+        elif 'cb' in c or 'c_b' in c or 'концентрация b' in c:
+            new_columns.append('CB')
+        elif 'cc' in c or 'c_c' in c or 'концентрация c' in c:
+            new_columns.append('CC')
+        elif 'r' in c or 'скорость' in c or 'rate' in c:
+            new_columns.append('r')
+        elif 't' in c or 'время' in c or 'time' in c:
+            if 'temp' in c or col == 'T':
+                new_columns.append('T')
+            else:
+                new_columns.append('t')
+        elif 'k' in c:
+            new_columns.append('k')
+        else:
+            new_columns.append(col)
+            
     df.columns = new_columns
     
-    # 2. استبدال الفاصلة (,) بنقطة (.) وتحويل النص لرقم فلوت حقيقي لجميع الأعمدة
+    # 3. التطهير الشامل للخلايا (مسح الفراغات العادية والخفية، وتحويل الفواصل لنقاط)
     for col in df.columns:
-        if df[col].dtype == 'object':
-            df[col] = df[col].astype(str).str.replace(',', '.', regex=False).str.strip()
+        df[col] = df[col].astype(str)
+        # مسح شامل لأي نوع مسافة خفية (\xa0, \t, \r, \n)
+        df[col] = df[col].str.replace(r'\s+', '', regex=True)
+        # تحويل الفاصلة الروسية لنقطة إنجليزية دقيقة الحساب
+        df[col] = df[col].str.replace(',', '.', regex=False)
+        # التحويل الإجباري إلى أرقام حقيقية (float)
         df[col] = pd.to_numeric(df[col], errors='coerce')
-    
+        
+    # إزالة أي سطور فارغة تماماً
+    df = df.dropna(how='all')
     return df
 
 
@@ -222,21 +229,13 @@ def main():
             st.markdown("""
             * **`т, мин`** (Время в минутах)
             * **`А`** (Оптическая плотность)
-
-            ### Опциональные столбцы:
-            * **`А0`** (Начальная Оптическая плотность) - если отсутствует, используется первое значение А
-            * **`А/А0`** (Отношение А/А0) - рассчитывается автоматически если отсутствует
-
-            ### Поддерживаемые форматы:
-            * Excel (`.xlsx`)
-            * CSV (`.csv`) с автоопределением разделителя
             """)
             st.markdown("---")
             
             selected_sheet = st.selectbox(
                 "Выберите лист Excel",
                 options=["Лист 1", "Основной расчет"], 
-                help="Выберите вкладку из загруженного файла Excel"
+                key="photo_sheet"
             )
 
         st.markdown('<div class="section-header-data"><h2>📊 Ввод данных (Фотокатализ)</h2></div>', unsafe_allow_html=True)
@@ -335,17 +334,6 @@ def main():
                 fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
                 st.pyplot(fig_main)
 
-                st.markdown("---")
-                btn_col1, btn_col2 = st.columns(2)
-                with btn_col1:
-                    png_buffer = BytesIO()
-                    fig_main.savefig(png_buffer, format='png', dpi=300, bbox_inches='tight')
-                    png_buffer.seek(0)
-                    st.download_button(label="📥 Скачать графики (PNG)", data=png_buffer, file_name="kinetic_plots.png", mime="image/png", use_container_width=True)
-                with btn_col2:
-                    excel_data = convert_df_to_excel(results_summary)
-                    st.download_button(label="📥 Скачать результаты (Excel)", data=excel_data, file_name="kinetic_results.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-
             except Exception as e:
                 st.error(f"Ошибка моделирования: {str(e)}")
 
@@ -364,20 +352,13 @@ def main():
             st.header("⚙️ Параметры процесса")
             st.info("Тип: Гомогенный катализ")
             st.markdown("---")
-            
             if homo_model == "Power-law (степенной закон)":
-                st.markdown("### 📋 Входные данные")
-                st.markdown("- `t` — время\n- `CA` — конц. А\n- `CB` — конц. B\n- `r` — скорость")
+                st.markdown("### 📋 Требуемые столбцы:\n- `t` — время\n- `CA` — конц. А\n- `CB` — конц. B\n- `r` — скорость")
             elif homo_model == "Arrhenius":
-                st.markdown("### 📋 Входные данные")
-                st.markdown("- `T` — темп. (K)\n- `k` — константа")
-            elif homo_model == "Последовательные реакции":
-                st.markdown("### 📋 Входные данные")
-                st.markdown("- `t` — время\n- `CA`, `CB`, `CC` — конц.")
+                st.markdown("### 📋 Требуемые столбцы:\n- `T` — темп. (K)\n- `k` — константа")
+            else:
+                st.markdown("### 📋 Требуемые столбцы:\n- `t` — время\n- `CA`, `CB`, `CC`")
             st.markdown("---")
-            st.markdown("### Поддерживаемые форматы:\n* Excel (`.xlsx`)\n* CSV (`.csv`) с автоопределением")
-            st.markdown("---")
-            
             selected_sheet_homo = st.selectbox("Выберите лист Excel", options=["Лист 1", "Основной расчет"], key="homo_sheet")
 
         st.markdown(f'<div class="section-header-data"><h2>📊 Ввод данных ({homo_model})</h2></div>', unsafe_allow_html=True)
@@ -393,9 +374,8 @@ def main():
                         h_df = read_csv_file(uploaded_h_file)
                     else:
                         excel_file = pd.ExcelFile(uploaded_h_file)
-                        if len(excel_file.sheet_names) > 0:
-                            selected_sheet_homo = excel_file.sheet_names[0]
-                        h_df = pd.read_excel(uploaded_h_file, sheet_name=selected_sheet_homo)
+                        sheet_to_use = excel_file.sheet_names[0] if len(excel_file.sheet_names) > 0 else selected_sheet_homo
+                        h_df = pd.read_excel(uploaded_h_file, sheet_name=sheet_to_use)
                 except Exception as e:
                     st.error(f"Ошибка загрузки файла: {str(e)}")
         else:
@@ -409,9 +389,13 @@ def main():
             st.markdown("**Заполните таблицу данными:**")
             h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
 
-        # تفعيل المعالجة السحرية لحل مشكلة الفواصل والحروف الروسية المتداخلة فوراً
+        # تفعيل التطهير الذكي الفوري وعرض النتيجة الحية للمستخدم للتأكد
         if h_df is not None and len(h_df) > 0:
             h_df = clean_homogeneous_data(h_df)
+            
+            st.success(f"📋 Данные успешно прочитаны и нормализованы! Обнаруженные столбцы: {list(h_df.columns)}")
+            with st.expander("🔎 Посмотреть, как программа распознала числа (Очищенная таблица)"):
+                st.dataframe(h_df, use_container_width=True)
 
             # 1. СТЕПЕННОЙ ЗАКОН (Power-law)
             if homo_model == "Power-law (степенной закон)":
@@ -419,7 +403,7 @@ def main():
                     required_cols = ['t', 'CA', 'CB', 'r']
                     missing_cols = [c for c in required_cols if c not in h_df.columns]
                     if missing_cols:
-                        st.error(f"❌ **Ошибка в структуре данных!** В таблице отсутствуют необходимые столбцы: `{missing_cols}`. Пожалуйста, переименуйте заголовки в вашем файле Excel строго в: `{required_cols}`")
+                        st.error(f"❌ **Ошибка структуры!** Не найдены столбцы: `{missing_cols}`. Пожалуйста, проверьте заголовки файла.")
                         return
                     
                     try:
@@ -482,7 +466,7 @@ def main():
                     required_cols = ['T', 'k']
                     missing_cols = [c for c in required_cols if c not in h_df.columns]
                     if missing_cols:
-                        st.error(f"❌ **Ошибка в структуре данных!** Отсутствуют столбцы: `{missing_cols}`. Необходимы заголовки: `{required_cols}`")
+                        st.error(f"❌ **Ошибка в структуре данных!** Отсутствуют столбцы: `{missing_cols}`.")
                         return
 
                     try:
@@ -518,17 +502,6 @@ def main():
                         ax.legend()
                         ax.grid(True, linestyle='--', alpha=0.6)
                         st.pyplot(fig)
-
-                        st.markdown("---")
-                        b1, b2 = st.columns(2)
-                        with b1:
-                            png_b = BytesIO()
-                            fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
-                            png_b.seek(0)
-                            st.download_button("📥 Скачать график (PNG)", data=png_b, file_name="arrhenius_plot.png", mime="image/png", use_container_width=True)
-                        with b2:
-                            res_df = pd.DataFrame({'Параметр': ['A', 'Ea (kJ/mol)', 'R2', 'MAPE (%)'], 'Значение': [A_val, Ea_val, r2, mape]})
-                            st.download_button("📥 Скачать результаты (Excel)", data=convert_df_to_excel(res_df), file_name="arrhenius_results.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
                     except Exception as e:
                         st.error(f"Ошибка расчета: {str(e)}")
 
@@ -538,14 +511,10 @@ def main():
                     required_cols = ['t', 'CA', 'CB', 'CC']
                     missing_cols = [c for c in required_cols if c not in h_df.columns]
                     if missing_cols:
-                        st.error(f"❌ **Ошибка в структуре данных!** Отсутствуют столбцы: `{missing_cols}`. Необходимы заголовки: `{required_cols}`")
+                        st.error(f"❌ **Ошибка в структуре данных!** Отсутствуют столбцы: `{missing_cols}`")
                         return
 
                     try:
-                        if len(h_df) < 2 or (h_df['t'] == 0).all():
-                            st.warning("Заполните таблицу экспериментальными точками.")
-                            return
-                            
                         t_data = h_df['t'].values
                         CA_data = h_df['CA'].values
                         
@@ -589,24 +558,13 @@ def main():
                         ax.legend()
                         ax.grid(True, linestyle='--', alpha=0.6)
                         st.pyplot(fig)
-
-                        st.markdown("---")
-                        b1, b2 = st.columns(2)
-                        with b1:
-                            png_b = BytesIO()
-                            fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
-                            png_b.seek(0)
-                            st.download_button("📥 Скачать график (PNG)", data=png_b, file_name="consecutive_plot.png", mime="image/png", use_container_width=True)
-                        with b2:
-                            res_df = pd.DataFrame({'Параметр': ['k1', 'k2', 'Средний R2', 'Средний MAPE (%)'], 'Значение': [k1_fit, k2_fit, total_r2, total_mape]})
-                            st.download_button("📥 Скачать результаты (Excel)", data=convert_df_to_excel(res_df), file_name="consecutive_results.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
                     except Exception as e:
                         st.error(f"Ошибка расчета: {str(e)}")
 
     elif reaction_type == "Гетерогенный катализ":
-        st.info("Раздел 'Гетерогенный катализ' (Модели Ленгмюра-Хиншельвуда)")
+        st.info("Раздел 'Гетерогенный катализ'")
     elif reaction_type == "Ферментативные реакции":
-        st.info("Раздел 'Ферментативные реакции' (Модели Михаэлиса-Ментен)")
+        st.info("Раздел 'Ферментативные реакции'")
 
 
 if __name__ == "__main__":

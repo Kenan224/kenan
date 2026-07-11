@@ -113,7 +113,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
 /* 3) الهيدر الرئيسي - تم تكبيره هنا ليكون ضخماً وواضحاً */
 .main-header-title {
     background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-    padding: 2rem;
+    padding: 3.2rem;
     border-radius: 12px;
     margin-bottom: 0.6rem;
     box-shadow: 0 4px 15px rgba(30, 64, 175, 0.2);

@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from io import BytesIO
 from scipy.optimize import curve_fit
+from matplotlib.ticker import MaxNLocator
 
 # Import custom modules
 from data_processor import validate_data_structure, preprocess_data, get_data_summary, read_csv_file
@@ -26,7 +27,7 @@ st.set_page_config(
 )
 
 # =============================================================================
-# CSS -- التحديث الشامل للقضاء على المربعات والكبسولات السوداء تماماً
+# CSS -- التحديث الشامل للأحجام وتكبير العنوان وتنسيق الألوان
 # =============================================================================
 st.markdown("""
 <style>
@@ -57,7 +58,7 @@ textarea,
     border-color: #cbd5e1 !important;
 }
 
-/* حل مشكلة كبسولة الملف المرفوع السوداء وإجبارها على لون فاتح ونصوص واضحة */
+/* كبسولة الملف المرفوع */
 [data-testid="stUploadedFile"] {
     background-color: #e2e8f0 !important;
     background: #e2e8f0 !important;
@@ -71,7 +72,7 @@ textarea,
     fill: #1e293b !important;
 }
 
-/* حل مشكلة المربع الأسود الخاص بسهم القائمة المنسدلة وعناصره الداخلية */
+/* سهم القائمة المنسدلة */
 div[data-baseweb="select"] button, 
 div[data-baseweb="select"] div,
 div[data-testid="stSelectbox"] button,
@@ -86,7 +87,6 @@ div[data-testid="stSelectbox"] svg {
     color: #1e293b !important;
 }
 
-/* إجبار النصوص داخل القوائم والمدخلات على اللون الداكن */
 div[data-baseweb="select"] *, 
 div[data-baseweb="popover"] *, 
 div[role="listbox"] *,
@@ -94,7 +94,6 @@ div[role="listbox"] *,
     color: #1e293b !important;
 }
 
-/* خيارات القائمة المنسدلة عند فتحها لتظل بيضاء */
 li[role="option"], [data-baseweb="menu"] li, div[data-baseweb="popover"] div {
     background-color: #ffffff !important;
     background: #ffffff !important;
@@ -105,16 +104,16 @@ li[role="option"]:hover, [data-baseweb="menu"] li:hover {
     color: #1e3a8a !important;
 }
 
-/* إجبار كل نصوص التطبيق العادية على التباين الغامق المقروء مع تكبير الخط شحطتين وتوحيده */
+/* إجبار نصوص التطبيق العادية على حجم أكبر شحطتين وتوحيده */
 html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, button {
     color: #1e293b !important;
     font-size: 1.1rem !important;
 }
 
-/* 3) الهيدر الرئيسي - مستطيل العنوان فقط */
+/* 3) الهيدر الرئيسي - تم تكبيره هنا ليكون ضخماً وواضحاً */
 .main-header-title {
     background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-    padding: 1.6rem;
+    padding: 2rem;
     border-radius: 12px;
     margin-bottom: 0.6rem;
     box-shadow: 0 4px 15px rgba(30, 64, 175, 0.2);
@@ -122,12 +121,13 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
 }
 .main-header-title h1 {
     margin: 0;
-    font-weight: 600;
-    font-size: 2.2rem !important;
+    font-weight: 700;
+    font-size: 3.2rem !important; /* حجم كبير جداً للعنوان */
     color: #ffffff !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* 4) مستطيل منفرد ومنفصل تماماً للأسماء والمعلومات */
+/* مستطيل منفرد ومنفصل تماماً للأسماء والمعلومات */
 .main-header-authors {
     background: #eff6ff;
     padding: 0.8rem;
@@ -141,10 +141,10 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
     color: #1e40af !important; 
     margin: 0; 
     font-weight: 600;
-    font-size: 1.05rem !important;
+    font-size: 1.1rem !important;
 }
 
-/* كروت المعلومات الكلاسيكية */
+/* كروت المعلومات */
 .info-card {
     background: #ffffff;
     padding: 1rem 1.2rem;
@@ -154,7 +154,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
     border: 1px solid #e2e8f0;
 }
 
-/* صناديق المقاييس الملونة */
+/* صناديق المقاييس */
 .metric-box {
     border-radius: 10px;
     padding: 0.9rem;
@@ -189,7 +189,7 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
     font-size: 1.15rem !important;
 }
 
-/* عناوين الأقسام المتناسقة */
+/* عناوين الأقسام */
 .section-header {
     padding: 0.8rem 1.2rem;
     border-radius: 10px;
@@ -254,7 +254,6 @@ section[data-testid="stSidebar"] { background-color: #ffffff !important; }
     border-bottom: 2px solid #2563eb;
 }
 
-/* تعديل أزرار التحميل والأزرار العادية لتبقى فاتحة */
 .stDownloadButton button, .stButton button {
     background-color: #ffffff !important;
     color: #1e3a8a !important;
@@ -270,8 +269,16 @@ section[data-testid="stSidebar"] { background-color: #ffffff !important; }
 """, unsafe_allow_html=True)
 
 # =============================================================================
-# دوال مساعدة عامة
+# دوال مساعدة عامة وتنسيق المخططات البيانية
 # =============================================================================
+def apply_axis_style(ax):
+    """دالة موحدة لمنع تداخل أرقام المحاور وإعطائها مظهراً متناسقاً متباعداً"""
+    ax.xaxis.set_major_locator(MaxNLocator(5))  # حد أقصى 5 قيم على المحور الأفقي لمنع الالتصاق
+    ax.yaxis.set_major_locator(MaxNLocator(5))  # حد أقصى 5 قيم على المحور الرأسي
+    ax.tick_params(axis='x', rotation=15, labelsize=8.5) # تدوير بسيط لمنع التداخل تماماً
+    ax.tick_params(axis='y', labelsize=8.5)
+    ax.grid(True, linestyle='--', alpha=0.6)
+
 def calculate_metrics(y_true, y_pred):
     y_true = np.asarray(y_true).flatten()
     y_pred = np.asarray(y_pred).flatten()
@@ -512,8 +519,12 @@ def render_photocatalysis():
         st.markdown(section_header("sh-viz", "📊", "Графика"), unsafe_allow_html=True)
         fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
         
-        # احتواء الرسم البياني داخل نصف مساحة الصفحة لمنع تمطيطه وتكبير خطوطه بشكل مشوه
-        col_chart_photo, _ = st.columns([1, 1])
+        # لتعديل محاور هذا الجرافيك منعاً للتداخل
+        for ax in fig_main.get_axes():
+            apply_axis_style(ax)
+
+        # توسيط جرافيك الفوتوكاتاليز في منتصف الصفحة تماماً
+        col_side1, col_chart_photo, col_side2 = st.columns([1, 2, 1])
         with col_chart_photo:
             st.pyplot(fig_main)
 
@@ -543,7 +554,7 @@ HOMO_MODEL_INFO = {
     },
     "Последовательные реакции": {
         "inputs": ["t (время)", "CA, CB, CC (концентрации веществ)"],
-        "outputs": ["k1, k2 — константы скорости", "R², RMSE, Max C_B — метрики", "профиль концентраций"],
+        "outputs": ["k1, k2 — константы скорости", "R², RMSE (%), Max C_B — метрики", "профиль концентраций"],
     },
 }
 
@@ -579,6 +590,7 @@ def render_homogeneous():
 
     h_df = clean_homogeneous_data(h_df)
 
+    # 1) مـوديل الـ Power-law
     if homo_model == "Power-law (степенной закон)":
         if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'r']):
             st.error("❌ **Ошибка структуры!**")
@@ -601,22 +613,21 @@ def render_homogeneous():
             c4.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
             c5.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
 
-            fig, ax = plt.subplots(figsize=(4.0, 2.2))
+            fig, ax = plt.subplots(figsize=(4.8, 2.8))
             x_linear = (clean_df['CA'].values ** alpha_val) * (clean_df['CB'].values ** beta_val)
             ax.scatter(x_linear, clean_df['r'].values, color='#ef4444', label='Эксперимент', s=20)
             ax.plot(x_linear, r_pred, color='#1e40af', label=f'Модель', linewidth=1.5)
-            ax.set_xlabel('Фактор концентраций', fontsize=8)
-            ax.set_ylabel('Скорость (r)', fontsize=8)
-            ax.tick_params(axis='both', which='major', labelsize=7.5)
-            ax.legend(fontsize=7.5)
-            ax.grid(True, linestyle='--', alpha=0.6)
+            ax.set_xlabel('Фактор концентраций', fontsize=8.5)
+            ax.set_ylabel('Скорость (r)', fontsize=8.5)
             
-            # احتواء الرسم البياني لمنع تمطيطه وتصغير مساحته الإجمالية على الشاشة
-            col_chart_pl, _ = st.columns([1, 1])
+            apply_axis_style(ax) # تطبيق التنسيق والتباعد لمنع تداخل الأرقام
+            ax.legend(fontsize=7.5)
+            
+            # توسيط الجرافيك تماماً في منتصف الشاشة
+            col_side1, col_chart_pl, col_side2 = st.columns([1, 2, 1])
             with col_chart_pl:
                 st.pyplot(fig)
 
-            # قسم تحميل النتائج المخصص للنموذج الأول
             results_summary = pd.DataFrame({
                 'Параметр / Метрика': ['Константа скорости (k)', 'Порядок по веществу A (alpha)', 'Порядок по веществу B (beta)', 'Коэффициент детерминации (R²)', 'Ошибка (MAPE, %)'],
                 'Значение': [float(k_val), float(alpha_val), float(beta_val), float(r2), float(mape)]
@@ -633,6 +644,7 @@ def render_homogeneous():
 
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
+    # 2) مـوديل Arrhenius
     elif homo_model == "Arrhenius":
         if not all(c in h_df.columns for c in ['T', 'k']): return
         try:
@@ -652,21 +664,20 @@ def render_homogeneous():
             c3.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
             c4.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
 
-            fig, ax = plt.subplots(figsize=(4.0, 2.2))
+            fig, ax = plt.subplots(figsize=(4.8, 2.8))
             ax.scatter(inv_T, log_k, color='#ef4444', label='Эксперимент', s=20)
             ax.plot(inv_T, slope * inv_T + intercept, color='#10b981', linewidth=1.5, label='Линейный тренд')
-            ax.set_xlabel('1/T (1/K)', fontsize=8)
-            ax.set_ylabel('ln(k)', fontsize=8)
-            ax.tick_params(axis='both', which='major', labelsize=7.5)
-            ax.legend(fontsize=7.5)
-            ax.grid(True, linestyle='--', alpha=0.6)
+            ax.set_xlabel('1/T (1/K)', fontsize=8.5)
+            ax.set_ylabel('ln(k)', fontsize=8.5)
             
-            # احتواء الرسم البياني لمنع تمطيطه وتصغير مساحته الإجمالية على الشاشة
-            col_chart_arr, _ = st.columns([1, 1])
+            apply_axis_style(ax) # تطبيق التنسيق والتدوير الفريد لمنع تداخل أرقام الكسور الطويلة تماماً
+            ax.legend(fontsize=7.5)
+            
+            # توسيط جرافيك معادلة أرينيوس بالمنتصف تماماً
+            col_side1, col_chart_arr, col_side2 = st.columns([1, 2, 1])
             with col_chart_arr:
                 st.pyplot(fig)
 
-            # قسم تحميل النتائج المخصص للنموذج الثاني
             results_summary = pd.DataFrame({
                 'Параметр / Метрика': ['Предэкспоненциальный множитель (A)', 'Энергия активации (Ea, кДж/моль)', 'Коэффициент детерминации (R²)', 'Ошибка (MAPE, %)'],
                 'Значение': [float(A_val), float(Ea_val), float(r2), float(mape)]
@@ -683,6 +694,7 @@ def render_homogeneous():
 
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
+    # 3) مـوديل التفاعلات المتتالية (Последовательные реакции)
     elif homo_model == "Последовательные реакции":
         if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'CC']): return
         try:
@@ -714,13 +726,14 @@ def render_homogeneous():
 
             st.markdown(section_header("sh-results", "📋", "Сводка результатов"), unsafe_allow_html=True)
             c1, c2, c3, c4, c5 = st.columns(5)
-            c1.markdown(f'<div class="performance-metric">🟣 k₁ = {k1_fit:.4f}</div>', unsafe_allow_html=True)
-            c2.markdown(f'<div class="performance-metric">🔵 k₂ = {k2_fit:.4f}</div>', unsafe_allow_html=True)
+            c1.markdown(f'<div class="performance-metric">¼ k₁ = {k1_fit:.4f}</div>', unsafe_allow_html=True)
+            c2.markdown(f'<div class="performance-metric">½ k₂ = {k2_fit:.4f}</div>', unsafe_allow_html=True)
             c3.markdown(f'<div class="performance-metric">📊 R² = {r2_final:.4f}</div>', unsafe_allow_html=True)
-            c4.markdown(f'<div class="performance-metric">📉 RMSE = {rmse_val:.4f}</div>', unsafe_allow_html=True)
+            # تم إلحاق النسبة المئوية % هنا لهذ الموديل بناءً على طلبك ليتوحد مع البقية
+            c4.markdown(f'<div class="performance-metric">📈 RMSE = {rmse_val:.2f}%</div>', unsafe_allow_html=True)
             c5.markdown(f'<div class="performance-metric">🔝 CB,max={CB_max_val:.3f} ({t_max_val:.1f} мин)</div>', unsafe_allow_html=True)
 
-            fig, ax = plt.subplots(figsize=(4.0, 2.2))
+            fig, ax = plt.subplots(figsize=(4.8, 2.8))
             ax.plot(t_data, CA_data, 'o', color='#ef4444', markersize=4)
             ax.plot(t_data, CA_pred, '-', color='#ef4444', label='A', linewidth=1.5)
             ax.plot(t_data, h_df['CB'].values, 'o', color='#16a34a', markersize=4)
@@ -728,20 +741,20 @@ def render_homogeneous():
             ax.plot(t_data, h_df['CC'].values, 'o', color='#2563eb', markersize=4)
             ax.plot(t_data, CC_pred, '-', color='#2563eb', label='C', linewidth=1.5)
             
-            ax.set_xlabel('Время (t)', fontsize=8)
-            ax.set_ylabel('Концентрация (C)', fontsize=8)
-            ax.tick_params(axis='both', which='major', labelsize=7.5)
-            ax.legend(fontsize=7.5)
-            ax.grid(True, linestyle='--', alpha=0.6)
+            ax.set_xlabel('Время (t)', fontsize=8.5)
+            ax.set_ylabel('Концентрация (C)', fontsize=8.5)
             
-            # احتواء الرسم البياني لمنع تمطيطه وتصغير مساحته الإجمالية на الشاشة
-            col_chart_cons, _ = st.columns([1, 1])
+            apply_axis_style(ax) # تطبيق التنسيق والتباعد لمنع تداخل الأرقام
+            ax.legend(fontsize=7.5)
+            
+            # توسيط جرافيك التفاعلات المتتالية بالمنتصف تماماً
+            col_side1, col_chart_cons, col_side2 = st.columns([1, 2, 1])
             with col_chart_cons:
                 st.pyplot(fig)
 
-            # قسم تحميل النتائج المخصص للنموذج الثالث
+            # إضافة علامة % في جدول البيانات المخصص للتحميل أيضاً لتوحيد المنظر تماماً
             results_summary = pd.DataFrame({
-                'Параметр / Метрика': ['Константа скорости k1', 'Константа скорости k2', 'Коэффициент детерминации (R²)', 'Ошибка (RMSE)', 'Макс. концентрация B (CB,max)', 'Время достижения макс. конц. (t_max)'],
+                'Параметр / Метрика': ['Константа скорости k1', 'Константа скорости k2', 'Коэффициент детерминации (R²)', 'Ошибка (RMSE, %)', 'Макс. концентрация B (CB,max)', 'Время достижения макс. конц. (t_max)'],
                 'Значение': [float(k1_fit), float(k2_fit), float(r2_final), float(rmse_val), float(CB_max_val), float(t_max_val)]
             })
             st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
@@ -762,7 +775,7 @@ def render_placeholder(section_name: str):
     st.info(f"Раздел «{section_name}» находится в разработке.")
 
 # =============================================================================
-# MAIN
+# MAIN ENTRYPOINT
 # =============================================================================
 def main():
     st.markdown("""

@@ -115,7 +115,7 @@ def convert_df_to_excel(df):
 
 
 def clean_homogeneous_data(df):
-    """دالة صامتة تماماً لإصلاح الـ Unnamed والفواصل والمسافات ميكانيكياً"""
+    """دالة مطورة بالكامل لتنظيف الأعمدة وإعادة بنائها لمنع مشاكل عدم القراءة نهائياً"""
     if df is None or df.empty:
         return df
     
@@ -143,42 +143,51 @@ def clean_homogeneous_data(df):
                 df = pd.DataFrame(rows, columns=header_parts)
                 break
 
-    # توحيد أسماء الأعمدة وتجاوز فخ الحروف الروسية والإنجليزية المتطابقة
+    # التعرف الذكي والشامل على أسماء الأعمدة لمنع سقوط عمود السرعة r
     new_columns = []
     for col in df.columns:
         c = str(col).strip().lower()
-        c = c.replace('с', 'c').replace('а', 'a').replace('в', 'b').replace('т', 't').replace('р', 'r')
+        c_clean = c.replace(' ', '').replace('_', '').replace('-', '').replace(',', '').replace('.', '')
+        c_clean = c_clean.replace('с', 'c').replace('а', 'a').replace('в', 'b').replace('т', 't').replace('р', 'r')
         
-        if 'ca' in c or 'c_a' in c or 'концентрация a' in c:
+        if 'ca' in c_clean or 'концентрацияa' in c_clean or c_clean == 'а' or c_clean == 'a':
             new_columns.append('CA')
-        elif 'cb' in c or 'c_b' in c or 'концентрация b' in c:
+        elif 'cb' in c_clean or 'концентрацияb' in c_clean or c_clean == 'в' or c_clean == 'b':
             new_columns.append('CB')
-        elif 'cc' in c or 'c_c' in c or 'концентрация c' in c:
+        elif 'cc' in c_clean or 'концентрацияc' in c_clean or c_clean == 'с' or c_clean == 'c':
             new_columns.append('CC')
-        elif 'r' in c or 'скорость' in c or 'rate' in c:
+        elif any(x in c_clean for x in ['rate', 'скорость', 'скоростьреакции']) or c_clean in ['r', 'w', 'v']:
             new_columns.append('r')
-        elif 't' in c or 'время' in c or 'time' in c:
-            if 'temp' in c or col == 'T':
+        elif 'time' in c_clean or 'время' in c_clean or c_clean in ['t', 'т']:
+            if 'temp' in c_clean or c_clean == 't(k)':
                 new_columns.append('T')
             else:
                 new_columns.append('t')
-        elif 'k' in c:
+        elif 'temp' in c_clean or col == 'T':
+            new_columns.append('T')
+        elif 'k' in c_clean:
             new_columns.append('k')
         else:
             new_columns.append(col)
             
-    df.columns = new_columns
-    
-    # تطهير الخلايا من المسافات الخفية والفواصل العشرية الروسية
-    for col in df.columns:
-        if 'Unnamed' in str(col):
+    # إعادة بناء الجدول بالكامل لتجنب مشاكل الفهارس المتداخلة في الباندا
+    cleaned_dict = {}
+    for i in range(len(df.columns)):
+        col_name = new_columns[i]
+        if 'Unnamed' in str(col_name):
             continue
-        df[col] = df[col].astype(str)
-        df[col] = df[col].str.replace(r'\s+', '', regex=True)
-        df[col] = df[col].str.replace(',', '.', regex=False)
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+        series = df.iloc[:, i].astype(str)
+        series = series.str.replace(r'\s+', '', regex=True)
+        series = series.str.replace(',', '.', regex=False)
+        numeric_series = pd.to_numeric(series, errors='coerce')
         
-    return df.dropna(how='all')
+        if col_name in cleaned_dict:
+            cleaned_dict[f"{col_name}_dup_{i}"] = numeric_series
+        else:
+            cleaned_dict[col_name] = numeric_series
+            
+    final_df = pd.DataFrame(cleaned_dict)
+    return final_df.dropna(how='all')
 
 
 def main():
@@ -323,7 +332,7 @@ def main():
                     st.markdown('<p class="model-title">🟢 Модель PSO</p>', unsafe_allow_html=True)
                     st.markdown(f'<div class="performance-metric">⚡ k₂ = {k2:.5f}</div><div class="performance-metric">📊 R² = {r2_pso:.4f}</div><div class="performance-metric">📈 MAPE = {mape_pso:.2f}%</div>', unsafe_allow_html=True)
 
-                st.markdown('<div class="section-header-visualization"><h2>📊 Графики</h2></div>', unsafe_allow_html=True)
+                st.markdown('<div class="section-header-visualization"><h2>📊 Графика</h2></div>', unsafe_allow_html=True)
                 fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
                 st.pyplot(fig_main)
 
@@ -382,7 +391,7 @@ def main():
             st.markdown("**Заполните таблицу данными:**")
             h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
 
-        # المعالجة الصامتة الفورية بعد قراءة البيانات مباشرة
+        # التنظيف التلقائي الآمن وإعادة الهيكلة
         if h_df is not None and len(h_df) > 0:
             h_df = clean_homogeneous_data(h_df)
 

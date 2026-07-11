@@ -1,5 +1,5 @@
 """
-Kinetic modeling functions for ZO, PFO and PSO analysis.
+Kinetic modeling functions for PFO and PSO analysis.
 """
 
 import numpy as np
@@ -63,7 +63,7 @@ def zo_model(t: np.ndarray, k0: float, A0: float) -> np.ndarray:
 
     Args:
         t: Time array
-        k0: Zero-order rate constant
+        k0: Zero order rate constant
         A0: Initial concentration
 
     Returns:
@@ -101,6 +101,32 @@ def pso_model(t: np.ndarray, k2: float, A0: float) -> np.ndarray:
     return (1 / A0) + k2 * t
 
 
+def fit_pfo_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, float, float]:
+    """
+    Fit the Pseudo-First Order model to the selected data.
+
+    Args:
+        selected_data: DataFrame with selected stable points
+
+    Returns:
+        Tuple of (k1, predictions_df, mape, r2)
+    """
+    # Fit the PFO model
+    pfo_params, _ = curve_fit(pfo_model, selected_data['т, мин'], selected_data['ln_A_A0'])
+    k1 = pfo_params[0]
+
+    # Calculate predictions
+    predictions = selected_data.copy()
+    predictions['PFO_pred_ln'] = pfo_model(selected_data['т, мин'], k1)
+    predictions['PFO_pred'] = np.exp(predictions['PFO_pred_ln'])
+
+    # Calculate metrics
+    mape = mean_absolute_percentage_error(selected_data['А/А0'], predictions['PFO_pred']) * 100
+    r2 = r2_score(selected_data['А/А0'], predictions['PFO_pred'])
+
+    return k1, predictions, mape, r2
+
+
 def fit_zo_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, float, float]:
     """
     Fit the Zero Order model to the selected data.
@@ -130,32 +156,6 @@ def fit_zo_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, floa
     r2 = r2_score(selected_data['А'], predictions['ZO_pred'])
 
     return k0, predictions, mape, r2
-
-
-def fit_pfo_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, float, float]:
-    """
-    Fit the Pseudo-First Order model to the selected data.
-
-    Args:
-        selected_data: DataFrame with selected stable points
-
-    Returns:
-        Tuple of (k1, predictions_df, mape, r2)
-    """
-    # Fit the PFO model
-    pfo_params, _ = curve_fit(pfo_model, selected_data['т, мин'], selected_data['ln_A_A0'])
-    k1 = pfo_params[0]
-
-    # Calculate predictions
-    predictions = selected_data.copy()
-    predictions['PFO_pred_ln'] = pfo_model(selected_data['т, мин'], k1)
-    predictions['PFO_pred'] = np.exp(predictions['PFO_pred_ln'])
-
-    # Calculate metrics
-    mape = mean_absolute_percentage_error(selected_data['А/А0'], predictions['PFO_pred']) * 100
-    r2 = r2_score(selected_data['А/А0'], predictions['PFO_pred'])
-
-    return k1, predictions, mape, r2
 
 
 def fit_pso_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, float, float]:
@@ -190,11 +190,22 @@ def fit_pso_model(selected_data: pd.DataFrame) -> Tuple[float, pd.DataFrame, flo
     return k2, predictions, mape, r2
 
 
-def create_results_summary(k0: float, k1: float, k2: float, 
-                           mape_zo: float, mape_pfo: float, mape_pso: float,
-                           r2_zo: float, r2_pfo: float, r2_pso: float) -> pd.DataFrame:
+def create_results_summary(k0: float, k1: float, k2: float,
+                          mape_zo: float, mape_pfo: float, mape_pso: float,
+                          r2_zo: float, r2_pfo: float, r2_pso: float) -> pd.DataFrame:
     """
     Create a summary DataFrame of model results.
+
+    Args:
+        k0: ZO rate constant
+        k1: PFO rate constant
+        k2: PSO rate constant
+        mape_zo: ZO MAPE
+        mape_pfo: PFO MAPE
+        mape_pso: PSO MAPE
+        r2_zo: ZO R-squared
+        r2_pfo: PFO R-squared
+        r2_pso: PSO R-squared
 
     Returns:
         Summary DataFrame
@@ -202,7 +213,7 @@ def create_results_summary(k0: float, k1: float, k2: float,
     return pd.DataFrame({
         'Модель': ['ZO', 'PFO', 'PSO'],
         'Параметры': [
-            f'k₀ = {abs(k0):.5f} ед/мин',
+            f'k₀ = {abs(k0):.5f} мин⁻¹',
             f'k₁ = {abs(k1):.5f} мин⁻¹',
             f'k₂ = {k2:.5f} мин⁻¹'
         ],
@@ -211,21 +222,23 @@ def create_results_summary(k0: float, k1: float, k2: float,
     })
 
 
-def create_detailed_results(zo_predictions: pd.DataFrame, pfo_predictions: pd.DataFrame, pso_predictions: pd.DataFrame) -> pd.DataFrame:
+def create_detailed_results(pfo_predictions: pd.DataFrame, pso_predictions: pd.DataFrame) -> pd.DataFrame:
     """
     Create detailed point-by-point results DataFrame.
+
+    Args:
+        pfo_predictions: PFO model predictions
+        pso_predictions: PSO model predictions
 
     Returns:
         Detailed results DataFrame
     """
     return pd.DataFrame({
         'Время (мин)': pfo_predictions['т, мин'],
-        'A фактическое': zo_predictions['А'],
-        'ZO прогноз': zo_predictions['ZO_pred'],
-        'ZO ошибка (%)': np.abs((zo_predictions['А'] - zo_predictions['ZO_pred']) / zo_predictions['А']) * 100,
         'A/A0 фактическое': pfo_predictions['А/А0'],
         'PFO прогноз': pfo_predictions['PFO_pred'],
         'PFO ошибка (%)': np.abs((pfo_predictions['А/А0'] - pfo_predictions['PFO_pred']) / pfo_predictions['А/А0']) * 100,
+        'A фактическое': pso_predictions['А'],
         'PSO прогноз': pso_predictions['PSO_pred'],
         'PSO ошибка (%)': np.abs((pso_predictions['А'] - pso_predictions['PSO_pred']) / pso_predictions['А']) * 100,
     })

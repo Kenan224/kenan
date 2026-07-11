@@ -277,7 +277,8 @@ def calculate_metrics(y_true, y_pred):
     r2 = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
     mask = y_true != 0
     mape = np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100 if np.any(mask) else 0.0
-    return r2, mape
+    rmse = np.sqrt(np.mean((y_true - y_pred) ** 2))
+    return r2, mape, rmse
 
 
 def convert_df_to_excel(df):
@@ -495,6 +496,11 @@ def render_photocatalysis():
         k1, pfo_predictions, mape_pfo, r2_pfo = fit_pfo_model(selected_data)
         k2, pso_predictions, mape_pso, r2_pso = fit_pso_model(selected_data)
 
+        # حساب الـ RMSE للفوتوكاتاليز للعرض في جدول الملخص
+        _, _, rmse_zo = calculate_metrics(selected_data['А/А0'].values, zo_predictions)
+        _, _, rmse_pfo = calculate_metrics(selected_data['А/А0'].values, pfo_predictions)
+        _, _, rmse_pso = calculate_metrics(selected_data['А/А0'].values, pso_predictions)
+
         st.markdown(section_header("sh-results", "📋", "Сводка результатов"), unsafe_allow_html=True)
         results_summary = create_results_summary(k0, k1, k2, mape_zo, mape_pfo, mape_pso, r2_zo, r2_pfo, r2_pso)
         st.dataframe(results_summary, use_container_width=True)
@@ -515,31 +521,31 @@ def render_photocatalysis():
         st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
         d_col1, d_col2 = st.columns(2)
         with d_col1:
-            st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(results_summary), file_name="kinetic_analysis_results.xlsx", use_container_width=True)
+            st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(results_summary), file_name="photocatalysis_kinetic_results.xlsx", use_container_width=True)
         with d_col2:
             png_b = BytesIO()
             fig_main.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
             png_b.seek(0)
-            st.download_button("🖼️ Скачать графики (PNG)", data=png_b, file_name="kinetic_plots.png", mime="image/png", use_container_width=True)
+            st.download_button("🖼️ Скачать графики (PNG)", data=png_b, file_name="photocatalysis_plots.png", mime="image/png", use_container_width=True)
     except Exception as e:
         st.error(f"❌ Ошибка моделирования: {str(e)}")
 
 
 # =============================================================================
-# قسم 2: التحفيز المتجانس (تم تعديل أبعاد الرسومات هنا لتصبح أصغر)
+# قسم 2: التحفيز المتجانس (تحديث المقاييس، تصغير الجرافيكس وإضافة كشوف التحميل لكل نموذج)
 # =============================================================================
 HOMO_MODEL_INFO = {
     "Power-law (степенной закон)": {
         "inputs": ["t (время)", "CA (концентрация А)", "CB (концентрация B)", "r (скорость)"],
-        "outputs": ["k, α, β — параметры модели", "R², MAPE", "график линейной зависимости"],
+        "outputs": ["k, α, β — параметры модели", "R², MAPE, RMSE", "график линейной зависимости"],
     },
     "Arrhenius": {
         "inputs": ["T (температура, K)", "k (константа скорости)"],
-        "outputs": ["A, Ea — параметры Аррениуса", "R², MAPE", "график Аррениуса"],
+        "outputs": ["A, Ea — параметры Аррениуса", "R², MAPE, RMSE", "график Аррениуса"],
     },
     "Последовательные реакции": {
         "inputs": ["t (время)", "CA, CB, CC (концентрации веществ)"],
-        "outputs": ["k1, k2 — константы скорости", "R², MAPE", "профиль концентраций"],
+        "outputs": ["k1, k2 — константы скорости", "R², RMSE", "макс. концентрация промежуточных продуктов (CB)", "профиль концентраций"],
     },
 }
 
@@ -563,11 +569,11 @@ def render_homogeneous():
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
     else:
         if homo_model == "Power-law (степенной закон)":
-            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=[[0.0, 1.0, 1.5, 0.05], [5.0, 0.8, 1.3, 0.035]])
+            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=[[0.0, 1.0, 1.5, 0.05], [5.0, 0.8, 1.3, 0.035], [10.0, 0.6, 1.1, 0.022], [15.0, 0.4, 0.9, 0.012]])
         elif homo_model == "Arrhenius":
-            empty_df = pd.DataFrame(columns=['T', 'k'], data=[[298.0, 0.01], [308.0, 0.02]])
+            empty_df = pd.DataFrame(columns=['T', 'k'], data=[[298.0, 0.01], [308.0, 0.022], [318.0, 0.047], [328.0, 0.096]])
         else:
-            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'CC'], data=[[0.0, 1.0, 0.0, 0.0], [10.0, 0.5, 0.4, 0.1]])
+            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'CC'], data=[[0.0, 1.0, 0.0, 0.0], [5.0, 0.74, 0.23, 0.03], [10.0, 0.55, 0.35, 0.10], [15.0, 0.41, 0.40, 0.19], [20.0, 0.30, 0.41, 0.29]])
         st.markdown("**Заполните таблицу данными:**")
         h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
 
@@ -576,9 +582,10 @@ def render_homogeneous():
 
     h_df = clean_homogeneous_data(h_df)
 
+    # 1) نموذج قانون القوة
     if homo_model == "Power-law (степенной закон)":
         if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'r']):
-            st.error("❌ **Ошибка структуры!**")
+            st.error("❌ **Ошибка структуры! Проверьте наличие колонок t, CA, CB, r**")
             return
         try:
             clean_df = h_df[(h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)]
@@ -588,7 +595,7 @@ def render_homogeneous():
             beta_matrix, _, _, _ = np.linalg.lstsq(X, log_r, rcond=None)
             k_val, alpha_val, beta_val = np.exp(beta_matrix[0]), beta_matrix[1], beta_matrix[2]
             r_pred = k_val * (clean_df['CA'].values ** alpha_val) * (clean_df['CB'].values ** beta_val)
-            r2, mape = calculate_metrics(clean_df['r'].values, r_pred)
+            r2, mape, rmse = calculate_metrics(clean_df['r'].values, r_pred)
 
             st.markdown(section_header("sh-results", "📋", "Сводка результатов"), unsafe_allow_html=True)
             c1, c2, c3, c4, c5 = st.columns(5)
@@ -596,20 +603,38 @@ def render_homogeneous():
             c2.markdown(f'<div class="performance-metric">🔸 α = {alpha_val:.2f}</div>', unsafe_allow_html=True)
             c3.markdown(f'<div class="performance-metric">🔹 β = {beta_val:.2f}</div>', unsafe_allow_html=True)
             c4.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
-            c5.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
+            c5.markdown(f'<div class="performance-metric">📉 RMSE = {rmse:.4f}</div>', unsafe_allow_html=True)
 
-            # تعديل حجم الرسمة البيانية هنا تصغير الأبعاد لتصبح (4.8, 2.4)
-            fig, ax = plt.subplots(figsize=(4.8, 2.4))
+            # الرسم البياني المصغر والمعدل
+            fig, ax = plt.subplots(figsize=(5.5, 3))
             x_linear = (clean_df['CA'].values ** alpha_val) * (clean_df['CB'].values ** beta_val)
-            ax.scatter(x_linear, clean_df['r'].values, color='#ef4444', label='Эксперимент')
-            ax.plot(x_linear, r_pred, color='#1e40af', label=f'Модель')
-            ax.set_xlabel('Фактор концентраций')
-            ax.set_ylabel('Скорость (r)')
-            ax.legend().set_visible(True)
-            ax.grid(True, linestyle='--')
+            ax.scatter(x_linear, clean_df['r'].values, color='#ef4444', label='Эксперимент', s=25)
+            ax.plot(x_linear, r_pred, color='#1e40af', label='Модель', linewidth=1.5)
+            ax.set_xlabel('Фактор концентраций', fontsize=9)
+            ax.set_ylabel('Скорость (r)', fontsize=9)
+            ax.tick_params(axis='both', labelsize=8)
+            ax.legend(fontsize=8)
+            ax.grid(True, linestyle='--', alpha=0.6)
+            plt.tight_layout()
             st.pyplot(fig)
+
+            # صندوق التحميل للـ Power-law
+            st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
+            d_col1, d_col2 = st.columns(2)
+            res_df = pd.DataFrame({
+                'Параметр': ['k (Константа скорости)', 'alpha (Порядок по А)', 'beta (Порядок по B)', 'R²', 'MAPE (%)', 'RMSE'],
+                'Значение': [k_val, alpha_val, beta_val, r2, mape, rmse]
+            })
+            with d_col1:
+                st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(res_df), file_name="power_law_results.xlsx", use_container_width=True)
+            with d_col2:
+                png_b = BytesIO()
+                fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
+                png_b.seek(0)
+                st.download_button("🖼️ Скачать графики (PNG)", data=png_b, file_name="power_law_plot.png", mime="image/png", use_container_width=True)
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
+    # 2) نموذج أرينيوس
     elif homo_model == "Arrhenius":
         if not all(c in h_df.columns for c in ['T', 'k']): return
         try:
@@ -620,25 +645,44 @@ def render_homogeneous():
             slope, intercept = np.polyfit(inv_T, log_k, 1)
             Ea_val, A_val = -slope * R / 1000.0, np.exp(intercept)
             k_pred = A_val * np.exp(-(Ea_val * 1000.0) / (R * clean_df['T'].values))
-            r2, mape = calculate_metrics(clean_df['k'].values, k_pred)
+            r2, mape, rmse = calculate_metrics(clean_df['k'].values, k_pred)
 
             st.markdown(section_header("sh-results", "📋", "Сводка результатов"), unsafe_allow_html=True)
             c1, c2, c3, c4 = st.columns(4)
             c1.markdown(f'<div class="performance-metric">🧪 A = {A_val:.2e}</div>', unsafe_allow_html=True)
             c2.markdown(f'<div class="performance-metric">🔥 Ea = {Ea_val:.2f} кДж/моль</div>', unsafe_allow_html=True)
             c3.markdown(f'<div class="performance-metric">📊 R² = {r2:.4f}</div>', unsafe_allow_html=True)
-            c4.markdown(f'<div class="performance-metric">📈 MAPE = {mape:.2f}%</div>', unsafe_allow_html=True)
+            c4.markdown(f'<div class="performance-metric">📉 RMSE = {rmse:.4f}</div>', unsafe_allow_html=True)
 
-            # تعديل حجم الرسمة البيانية هنا تصغير الأبعاد لتصبح (4.8, 2.4)
-            fig, ax = plt.subplots(figsize=(4.8, 2.4))
-            ax.scatter(inv_T, log_k, color='#ef4444', label='Эксперимент')
-            ax.plot(inv_T, slope * inv_T + intercept, color='#10b981')
-            ax.set_xlabel('1/T (1/K)')
-            ax.set_ylabel('ln(k)')
-            ax.grid(True)
+            # الرسم البياني المصغر والمعدل
+            fig, ax = plt.subplots(figsize=(5.5, 3))
+            ax.scatter(inv_T, log_k, color='#ef4444', label='Эксперимент', s=25)
+            ax.plot(inv_T, slope * inv_T + intercept, color='#10b981', label='Линейная аппроксимация', linewidth=1.5)
+            ax.set_xlabel('1/T (1/K)', fontsize=9)
+            ax.set_ylabel('ln(k)', fontsize=9)
+            ax.tick_params(axis='both', labelsize=8)
+            ax.legend(fontsize=8)
+            ax.grid(True, linestyle='--', alpha=0.6)
+            plt.tight_layout()
             st.pyplot(fig)
+
+            # صندوق التحميل للـ Arrhenius
+            st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
+            d_col1, d_col2 = st.columns(2)
+            res_df = pd.DataFrame({
+                'Параметр': ['A (Предэкспоненциальный множитель)', 'Ea (Энергия активации, кДж/моль)', 'R²', 'MAPE (%)', 'RMSE'],
+                'Значение': [A_val, Ea_val, r2, mape, rmse]
+            })
+            with d_col1:
+                st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(res_df), file_name="arrhenius_results.xlsx", use_container_width=True)
+            with d_col2:
+                png_b = BytesIO()
+                fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
+                png_b.seek(0)
+                st.download_button("🖼️ Скачать графики (PNG)", data=png_b, file_name="arrhenius_plot.png", mime="image/png", use_container_width=True)
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
+    # 3) نموذج التفاعلات المتتالية (المصقول والمعدل كلياً)
     elif homo_model == "Последовательные реакции":
         if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'CC']): return
         try:
@@ -654,26 +698,66 @@ def render_homogeneous():
 
             CA_pred, CB_pred = CA_data[0] * np.exp(-k1_fit * t_data), fit_B(t_data, k2_fit)
             CC_pred = CA_data[0] - CA_pred - CB_pred
-            r2_A, _ = calculate_metrics(CA_data, CA_pred)
-            r2_B, _ = calculate_metrics(h_df['CB'].values, CB_pred)
+
+            # حساب المقاييس الشاملة (حساب خطأ النظام بالكامل)
+            r2_A, _, rmse_A = calculate_metrics(CA_data, CA_pred)
+            r2_B, _, rmse_B = calculate_metrics(h_df['CB'].values, CB_pred)
+            r2_C, _, rmse_C = calculate_metrics(h_df['CC'].values, CC_pred)
+            
+            total_r2 = (r2_A + r2_B + r2_C) / 3
+            total_rmse = (rmse_A + rmse_B + rmse_C) / 3
+
+            # حساب تركيز المادة الوسيطة الفعلي والأقصى ونقطة حدوثه بدقة رياضيّاً
+            t_fine = np.linspace(t_data.min(), t_data.max(), 500)
+            CB_fine = (k1_fit * CA_data[0] / (k2_fit - k1_fit)) * (np.exp(-k1_fit * t_fine) - np.exp(-k2_fit * t_fine))
+            max_CB_idx = np.argmax(CB_fine)
+            max_CB_val = CB_fine[max_CB_idx]
+            t_max_CB = t_fine[max_CB_idx]
 
             st.markdown(section_header("sh-results", "📋", "Сводка результатов"), unsafe_allow_html=True)
-            c1, c2, c3 = st.columns(3)
+            c1, c2, c3, c4, c5 = st.columns(5)
             c1.markdown(f'<div class="performance-metric">🟣 k₁ = {k1_fit:.4f}</div>', unsafe_allow_html=True)
             c2.markdown(f'<div class="performance-metric">🔵 k₂ = {k2_fit:.4f}</div>', unsafe_allow_html=True)
-            c3.markdown(f'<div class="performance-metric">📊 Средний R² = {(r2_A+r2_B)/2:.4f}</div>', unsafe_allow_html=True)
+            c3.markdown(f'<div class="performance-metric">📊 R² = {total_r2:.4f}</div>', unsafe_allow_html=True)
+            c4.markdown(f'<div class="performance-metric">📉 RMSE = {total_rmse:.4f}</div>', unsafe_allow_html=True)
+            c5.markdown(f'<div class="performance-metric">🧪 Max C_B = {max_CB_val:.3f} (в {t_max_CB:.1f} мин)</div>', unsafe_allow_html=True)
 
-            # تعديل حجم الرسمة البيانية هنا تصغير الأبعاد لتصبح (4.8, 2.4)
-            fig, ax = plt.subplots(figsize=(4.8, 2.4))
-            ax.plot(t_data, CA_data, 'o', color='#ef4444')
-            ax.plot(t_data, CA_pred, '-', color='#ef4444', label='A')
-            ax.plot(t_data, h_df['CB'].values, 'o', color='#16a34a')
-            ax.plot(t_data, CB_pred, '-', color='#16a34a', label='B')
-            ax.plot(t_data, h_df['CC'].values, 'o', color='#2563eb')
-            ax.plot(t_data, CC_pred, '-', color='#2563eb', label='C')
-            ax.legend()
-            ax.grid(True)
+            # جرافيك مصغر، مع تسمية كاملة للمحاور وتصغير دقيق للأرقام
+            fig, ax = plt.subplots(figsize=(5.5, 3))
+            ax.plot(t_data, CA_data, 'o', color='#ef4444', markersize=4)
+            ax.plot(t_fine, CA_data[0] * np.exp(-k1_fit * t_fine), '-', color='#ef4444', label='A (Исходное)', linewidth=1.5)
+            
+            ax.plot(t_data, h_df['CB'].values, 'o', color='#16a34a', markersize=4)
+            ax.plot(t_fine, CB_fine, '-', color='#16a34a', label='B (Промежут.)', linewidth=1.5)
+            
+            ax.plot(t_data, h_df['CC'].values, 'o', color='#2563eb', markersize=4)
+            ax.plot(t_fine, CA_data[0] - (CA_data[0] * np.exp(-k1_fit * t_fine)) - CB_fine, '-', color='#2563eb', label='C (Продукт)', linewidth=1.5)
+            
+            # خط وهمي يوضح ذروة المادة الوسيطة بناء على البيانات المطلوبة
+            ax.axvline(x=t_max_CB, color='#9333ea', linestyle=':', alpha=0.7, label=f'Max CB ({max_CB_val:.2f})')
+
+            ax.set_xlabel('Время (t), мин', fontsize=9)
+            ax.set_ylabel('Концентрация (C), моль/л', fontsize=9)
+            ax.tick_params(axis='both', labelsize=8)
+            ax.legend(fontsize=7, loc='best')
+            ax.grid(True, linestyle='--', alpha=0.5)
+            plt.tight_layout()
             st.pyplot(fig)
+
+            # صندوق التحميل للـ Последовательные реакции
+            st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
+            d_col1, d_col2 = st.columns(2)
+            res_df = pd.DataFrame({
+                'Параметр системы': ['k1 (Константа A->B)', 'k2 (Константа B->C)', 'Общий R²', 'Общий RMSE', 'Макс. конц. интермедиата (Max CB)', 'Время достижения Max CB (мин)'],
+                'Значение': [k1_fit, k2_fit, total_r2, total_rmse, max_CB_val, t_max_CB]
+            })
+            with d_col1:
+                st.download_button("📊 Скачать данные (Excel)", data=convert_df_to_excel(res_df), file_name="consecutive_reactions_results.xlsx", use_container_width=True)
+            with d_col2:
+                png_b = BytesIO()
+                fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
+                png_b.seek(0)
+                st.download_button("🖼️ Скачать графики (PNG)", data=png_b, file_name="consecutive_reactions_plot.png", mime="image/png", use_container_width=True)
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
 

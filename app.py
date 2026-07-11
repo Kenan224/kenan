@@ -26,10 +26,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# تعديل الـ CSS بالكامل ليتطابق مع الصورة المرسلة بنسبة 100% ومنع النصوص البيضاء
+# تعزيز الـ CSS لمنع اختفاء النصوص وضمان تباين الألوان 100%
 st.markdown("""
 <style>
-/* تصفير الخلفية لتكون بيضاء بالكامل مثل الصورة */
+/* تصفير الخلفية لتكون بيضاء بالكامل */
 .stApp {
     background-color: #ffffff;
 }
@@ -39,8 +39,20 @@ st.markdown("""
     background-color: #f4f6f9;
     border-right: 1px solid #e2e8f0;
 }
-[data-testid="stSidebar"] * {
+
+/* إجبار النصوص العامة في القائمة الجانبية على اللون الداكن */
+[data-testid="stSidebar"] p, 
+[data-testid="stSidebar"] span, 
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] h3 {
     color: #1e293b !important;
+}
+
+/* حل مشكلة العناصر السوداء: إجبار النصوص داخل القوائم المنسدلة وأداة الرفع الداكنة على اللون الأبيض الواضح */
+div[data-baseweb="select"] *, 
+div[data-testid="stFileUploaderDropzone"] *,
+.stSelectbox div {
+    color: #ffffff !important;
 }
 
 /* الهيدر الأزرق الرئيسي العريض في الأعلى */
@@ -54,7 +66,7 @@ st.markdown("""
     margin: 0;
     font-weight: 500;
     font-size: 2.2rem;
-    color: #ffffff !important; /* نص أبيض لأن الخلفية زرقاء داكنة */
+    color: #ffffff !important;
 }
 
 /* بطاقة معلومات الطالب والمشرف خلفية رمادية فاتحة ونص داكن */
@@ -81,7 +93,7 @@ st.markdown("""
     margin-bottom: 1rem;
 }
 .custom-section-header h2 {
-    color: #084298 !important; /* نص أزرق داكن واضح جداً */
+    color: #084298 !important;
     margin: 0;
     font-size: 1.6rem;
     font-weight: 500;
@@ -98,12 +110,12 @@ st.markdown("""
     border: 1px solid #b6d4fe;
 }
 
-/* إجبار جميع النصوص الافتراضية والعناصر على اللون الداكن منعا للاختفاء */
-p, span, label, .stRadio {
+/* إجبار جميع النصوص الافتراضية في المنطقة البيضاء الرئيسية على اللون الداكن منعاً للاختفاء */
+.main p, .main span, .main label, .stRadio h3, .main h3 {
     color: #0f172a !important;
 }
 
-/* تصميم الزر الأزرق الكبير في الأسفل */
+/* تصميم الأزرار الزرقاء الكبيرة */
 div.stButton > button {
     background-color: #1d63ed !important;
     color: #ffffff !important;
@@ -127,16 +139,6 @@ div.stButton > button:hover {
 }
 .metric-box-yellow h4 { margin: 0; color: #b45309 !important; font-size: 0.9rem; }
 .metric-box-yellow h2 { margin: 0.3rem 0 0 0; color: #78350f !important; font-size: 1.5rem; }
-
-.metric-box-blue {
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 8px;
-    padding: 1rem;
-    text-align: center;
-}
-.metric-box-blue h4 { margin: 0; color: #1d4ed8 !important; font-size: 0.9rem; }
-.metric-box-blue h2 { margin: 0.3rem 0 0 0; color: #1e40af !important; font-size: 1.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -208,14 +210,13 @@ def clean_homogeneous_data(df):
 
 
 def main():
-    # الهيدر العلوي المتطابق مع لقطة الشاشة
+    # الهيدر العلوي وبيانات الطالب والمشرف
     st.markdown("""
     <div class="main-header">
         <h1>Анализ кинетического моделирования</h1>
     </div>
     """, unsafe_allow_html=True)
 
-    # كرت الطالب والمشرف المتطابق مع لقطة الشاشة
     st.markdown("""
     <div class="student-card">
         <p><strong>СТУДЕНТ:</strong> Алсади К.</p>
@@ -223,9 +224,9 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # القائمة الجانبية الجاهزة
+    # 1. بناء الهامش (Sidebar) بالترتيب والمواصفات المطلوبة تماماً
     with st.sidebar:
-        st.markdown("### ⚙️ Параметры")
+        # اختيار نوع التفاعل في أعلى الهامش أول شيء
         reaction_type = st.selectbox(
             label="Тип химического процесса:",
             options=[
@@ -237,87 +238,127 @@ def main():
             index=0
         )
         st.markdown("---")
+        
+        # كلمة ПАРАМЕТРЫ تحت الاختيار مباشرة
+        st.markdown("### ⚙️ ПАРАМЕТРЫ")
+        st.markdown("---")
+        
+        # متطلبات المدخلات والنواتج والصيغ المدعومة
         st.markdown("### 📋 Требования к файлу")
         st.markdown("""
-        **Обязательные столбцы:**
+        **Обязательные столбцы (Входные данные):**
         * <span style="color:#10b981; font-weight:bold;">т, мин</span> (Время в минутах)
         * <span style="color:#10b981; font-weight:bold;">А</span> (Оптическая плотность)
         
-        **Опциональные столбцы:**
-        * <span style="color:#10b981; font-weight:bold;">А0</span> (Начальная Оптическая плотность) - если отсутствует, используется первое значение А
-        * <span style="color:#10b981; font-weight:bold;">А/А0</span> (Отношение А/А0) - рассчитывается автоматически если отсутствует
+        **Опциональные столбцы (Выходные расчеты):**
+        * <span style="color:#10b981; font-weight:bold;">А0</span> (Начальная плотность)
+        * <span style="color:#10b981; font-weight:bold;">А/А0</span> (Отношение величин)
         
         **Поддерживаемые форматы:**
         * Excel (.xlsx)
         * CSV (.csv) с автоопределением разделителя
         """, unsafe_allow_html=True)
-
-    # =========================================================================
-    # 1. قسم الفتح والتحليل الكينتيكي الضوئي
-    # =========================================================================
-    if reaction_type == "Фотокаталитические реакции":
-        st.markdown('<div class="custom-section-header"><h2>📊 Ввод данных</h2></div>', unsafe_allow_html=True)
         
-        input_method = st.radio(
-            "Выберите способ ввода данных:",
-            ["Загрузить файл", "Ввести данные вручную"],
-            index=1,
-            horizontal=True
+        # مكان محجوز ديناميكياً لقائمة لستة الاكسل (تظهر فقط إذا تحقق الشرط لاحقاً)
+        sheet_selector_placeholder = st.empty()
+
+    # 2. بناء المنطقة الرئيسية لإدخال البيانات (يدوي أو رفع ملف)
+    st.markdown('<div class="custom-section-header"><h2>📊 Ввод данных</h2></div>', unsafe_allow_html=True)
+    
+    input_method = st.radio(
+        "Выберите способ ввода данных:",
+        ["Загрузить файл", "Ввести данные вручную"],
+        index=1,
+        horizontal=True
+    )
+
+    df = None
+
+    if input_method == "Загрузить файл":
+        uploaded_file = st.file_uploader(
+            "Загрузите файл",
+            type=['xlsx', 'csv'],
+            help="Выберите файл Excel или CSV"
         )
 
-        df = None
-        if input_method == "Загрузить файл":
-            uploaded_file = st.file_uploader("Выберите файл", type=['xlsx', 'csv'])
-            if uploaded_file is not None:
-                try:
-                    file_extension = uploaded_file.name.split('.')[-1].lower()
-                    if file_extension == 'csv':
-                        df = read_csv_file(uploaded_file)
-                    else:
-                        df = pd.read_excel(uploaded_file)
-                    
-                    df.columns = df.columns.str.strip()
-                    is_valid, err_msg = validate_data_structure(df)
-                    if not is_valid:
-                        st.error(err_msg)
+        if uploaded_file is not None:
+            try:
+                file_extension = uploaded_file.name.split('.')[-1].lower()
+
+                if file_extension == 'csv':
+                    df = read_csv_file(uploaded_file)
+                    if df.empty:
+                        st.error("Файл CSV пуст")
                         return
-                    
-                    if 'А0' not in df.columns and 'А' in df.columns and len(df) > 0:
-                        df['А'] = pd.to_numeric(df['А'], errors='coerce')
-                        df['А0'] = df['А'].iloc[0]
-                    if 'А/А0' not in df.columns and 'А' in df.columns and 'А0' in df.columns:
-                        df['А/А0'] = df['А'] / df['А0']
-                    df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
-                except Exception as e:
-                    st.error(f"Ошибка: {str(e)}")
+                else:
+                    excel_file = pd.ExcelFile(uploaded_file)
+                    sheet_names = excel_file.sheet_names
 
-        else:
-            st.markdown('<div class="custom-section-header"><h2>📝 Ручной ввод данных</h2></div>', unsafe_allow_html=True)
-            st.markdown('<div class="info-banner">Введите данные в таблицу ниже. Первое значение в столбце А будет автоматически использовано как начальная Оптическая плотность А0 для всех расчетов. Столбец А/А0 будет рассчитан автоматически.</div>', unsafe_allow_html=True)
-            
-            # منع السطر الطويل والأقواس المفتوحة برمجياً تماماً هنا
-            init_cols = ['Время (мин)', 'Оптическая плотность А']
-            init_rows = [[0.0, 0.00000]]
-            default_data = pd.DataFrame(columns=init_cols, data=init_rows)
-            
-            edited_data = st.data_editor(default_data, num_rows="dynamic", use_container_width=True)
-            
-            if not edited_data.empty and len(edited_data) > 0:
-                raw_t = pd.to_numeric(edited_data.iloc[:, 0], errors='coerce')
-                raw_a = pd.to_numeric(edited_data.iloc[:, 1], errors='coerce')
+                    selected_sheet = sheet_names[0]
+                    # التفعيل الشرطي الصارم: تظهر فقط وحصرياً إذا كان هناك أكثر من صفحة واحدة
+                    if len(sheet_names) > 1:
+                        with sheet_selector_placeholder.container():
+                            st.markdown("---")
+                            selected_sheet = st.selectbox(
+                                "Выберите лист Excel",
+                                sheet_names,
+                                index=0,
+                                help="Выберите лист для работы"
+                            )
+
+                    df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
+                    if df.empty:
+                        st.error(f"Лист '{selected_sheet}' пуст")
+                        return
+
+                # التحقق من سلامة الهيكل البرمي
+                is_valid, error_message = validate_data_structure(df)
+                if not is_valid:
+                    st.error(f"{error_message}")
+                    return
+
+                df.columns = df.columns.str.strip()
+                if 'А0' not in df.columns and 'А' in df.columns and len(df) > 0:
+                    df['А'] = pd.to_numeric(df['А'], errors='coerce')
+                    df['А0'] = df['А'].iloc[0]
+                if 'А/А0' not in df.columns and 'А' in df.columns and 'А0' in df.columns:
+                    df['А/А0'] = df['А'] / df['А0']
                 
-                valid_mask = (raw_a >= 0) & (raw_t >= 0)
-                if valid_mask.any():
-                    df = pd.DataFrame({
-                        'т, мин': raw_t[valid_mask],
-                        'А': raw_a[valid_mask]
-                    })
-                    if len(df) > 0 and df.iloc[0]['А'] > 0:
-                        df['А0'] = df.iloc[0]['А']
-                        df['А/А0'] = df['А'] / df['А0']
+                df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
 
-        # زر بدء الحسابات أسفل الجدول مباشرة متطابق مع الصورة
-        if df is not None and not df.empty:
+            except Exception as e:
+                st.error(f"Ошибка загрузки: {str(e)}")
+
+    else:
+        # إدخال البيانات يدوياً
+        st.markdown('<div class="custom-section-header"><h2>📝 Ручной ввод данных</h2></div>', unsafe_allow_html=True)
+        st.markdown('<div class="info-banner">Введите данные в таблицу ниже. Первое значение в столбце А будет автоматически использовано как начальная Оптическая плотность А0 для всех расчетов. Столбец А/А0 будет рассчитан автоматически.</div>', unsafe_allow_html=True)
+        
+        init_cols = ['Время (мин)', 'Оптическая плотность А']
+        init_rows = [[0.0, 0.00000]]
+        default_data = pd.DataFrame(columns=init_cols, data=init_rows)
+        
+        edited_data = st.data_editor(default_data, num_rows="dynamic", use_container_width=True)
+        
+        if not edited_data.empty and len(edited_data) > 0:
+            raw_t = pd.to_numeric(edited_data.iloc[:, 0], errors='coerce')
+            raw_a = pd.to_numeric(edited_data.iloc[:, 1], errors='coerce')
+            
+            valid_mask = (raw_a >= 0) & (raw_t >= 0)
+            if valid_mask.any():
+                df = pd.DataFrame({
+                    'т, мин': raw_t[valid_mask],
+                    'А': raw_a[valid_mask]
+                    })
+                if len(df) > 0 and df.iloc[0]['А'] > 0:
+                    df['А0'] = df.iloc[0]['А']
+                    df['А/А0'] = df['А'] / df['А0']
+
+    # 3. معالجة وتدريب النماذج الحركية بناءً على نوع التفاعل المختبر
+    if df is not None and not df.empty:
+        
+        # أ. النوع الأول: فوتوكاتاليز (لا يوجد اختيار للنماذج، يتم معالجة الـ 3 معاً فوراً)
+        if reaction_type == "Фотокаталитические реакции":
             if st.button("Анализировать введенные данные"):
                 processed_df = preprocess_data(df)
                 summary = get_data_summary(processed_df)
@@ -344,70 +385,76 @@ def main():
                     st.markdown('### 📊 Графический анализ')
                     fig_main = create_matplotlib_plots(processed_df, selected_data, zo_predictions, pfo_predictions, pso_predictions, k0, k1, k2)
                     st.pyplot(fig_main)
+                    
+                    # 4. قسم تحميل النتائج المطور (Download Section) للـ Excel والـ PNG
+                    st.markdown('### 💾 Экспорт и сохранение результатов')
+                    dl_col1, dl_col2 = st.columns(2)
+                    
+                    # تحضير ملف الإكسل للتحميل
+                    excel_data = convert_df_to_excel(results_summary)
+                    dl_col1.download_button(
+                        label="📊 Скачать результаты в Excel",
+                        data=excel_data,
+                        file_name="Kinetic_Results.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                    
+                    # تحضير الصورة البيانية للتحميل كـ PNG
+                    img_buf = BytesIO()
+                    fig_main.savefig(img_buf, format="png", bbox_inches="tight")
+                    img_buf.seek(0)
+                    dl_col2.download_button(
+                        label="🖼️ Скачать графики в PNG",
+                        data=img_buf,
+                        file_name="Kinetic_Plots.png",
+                        mime="image/png"
+                    )
+                    
                 except Exception as e:
                     st.error(f"Ошибка расчетов: {str(e)}")
 
-    # =========================================================================
-    # 2. قسم الكاتاليز المتجانس (سليم ومنظم برمجياً وبصرياً)
-    # =========================================================================
-    elif reaction_type == "Гомогенный катализ":
-        st.markdown('### Кинетическая модель гомогенного катализа')
-        homo_model = st.radio(
-            "Выберите модель:",
-            ["Power-law (степенной закон)", "Arrhenius", "Последовательные реакции"],
-            index=0, horizontal=True
-        )
+        # ب. النوع الثاني: الكاتاليز المتجانس (يجب إظهار واجهة لاختيار النموذج المعتمد للعمل)
+        elif reaction_type == "Гомогенный катализ":
+            st.markdown('### Кинетическая модель гомогенного катализа')
+            homo_model = st.radio(
+                "Выберите конкретную модель для работы:",
+                ["Power-law (степенной закон)", "Arrhenius", "Последовательные реакции"],
+                index=0, horizontal=True
+            )
 
-        st.markdown(f'<div class="custom-section-header"><h2>📊 Ввод данных для {homo_model}</h2></div>', unsafe_allow_html=True)
-        
-        # بناء الجداول الافتراضية بأسطر منفصلة تماما لمنع أي مشاكل في الأقواس
-        if homo_model == "Power-law (степенной закон)":
-            cols = ['t', 'CA', 'CB', 'r']
-            rows = [[0.0, 1.0, 1.5, 0.05], [5.0, 0.8, 1.3, 0.035]]
-        elif homo_model == "Arrhenius":
-            cols = ['T', 'k']
-            rows = [[298.0, 0.01], [308.0, 0.02]]
-        else:
-            cols = ['t', 'CA', 'CB', 'CC']
-            rows = [[0.0, 1.0, 0.0, 0.0], [10.0, 0.5, 0.4, 0.1]]
-
-        empty_df = pd.DataFrame(columns=cols, data=rows)
-        h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic")
-
-        if h_df is not None and len(h_df) > 0:
             if st.button("Рассчитать параметры гомогенного катализа"):
-                h_df = clean_homogeneous_data(h_df)
+                cleaned_df = clean_homogeneous_data(df)
                 
-                if homo_model == "Power-law (степенной закон)" and all(c in h_df.columns for c in ['CA', 'CB', 'r']):
+                if homo_model == "Power-law (степенной закон)" and all(c in cleaned_df.columns for c in ['CA', 'CB', 'r']):
                     try:
-                        valid = h_df[(h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)]
+                        valid = cleaned_df[(cleaned_df['CA'] > 0) & (cleaned_df['CB'] > 0) & (cleaned_df['r'] > 0)]
                         if not valid.empty:
                             log_CA, log_CB, log_r = np.log(valid['CA'].values), np.log(valid['CB'].values), np.log(valid['r'].values)
                             X = np.column_stack((np.ones_like(log_CA), log_CA, log_CB))
                             beta, _, _, _ = np.linalg.lstsq(X, log_r, rcond=None)
                             k_val, a_val, b_val = np.exp(beta[0]), beta[1], beta[2]
-                            
-                            st.success(f"Успешно: k = {k_val:.4f}, α = {a_val:.2f}, β = {b_val:.2f}")
+                            st.success(f"Результаты расчетов: k = {k_val:.4f}, α = {a_val:.2f}, β = {b_val:.2f}")
                     except Exception as e:
-                        st.error(f"Ошибка: {str(e)}")
+                        st.error(f"Ошибка калькуляции: {str(e)}")
                         
-                elif homo_model == "Arrhenius" and all(c in h_df.columns for c in ['T', 'k']):
+                elif homo_model == "Arrhenius" and all(c in cleaned_df.columns for c in ['T', 'k']):
                     try:
-                        valid = h_df[(h_df['T'] > 0) & (h_df['k'] > 0)]
+                        valid = cleaned_df[(cleaned_df['T'] > 0) & (cleaned_df['k'] > 0)]
                         if not valid.empty:
                             inv_T = 1.0 / valid['T'].values
                             log_k = np.log(valid['k'].values)
                             slope, intercept = np.polyfit(inv_T, log_k, 1)
                             Ea = -slope * 8.314 / 1000.0
                             A = np.exp(intercept)
-                            st.success(f"Успешно: A = {A:.2e}, Ea = {Ea:.2f} кДж/моль")
+                            st.success(f"Результаты расчетов: A = {A:.2e}, Ea = {Ea:.2f} кДж/моль")
                     except Exception as e:
-                        st.error(f"Ошибка: {str(e)}")
+                        st.error(f"Ошибка калькуляции: {str(e)}")
 
-    elif reaction_type == "Гетерогенный катализ":
-        st.info("Раздел 'Гетерогенный катализ' успешно сохранен.")
-    elif reaction_type == "Ферментативные реакции":
-        st.info("Раздел 'Ферментативные реакции' успешно сохранен.")
+        # ج. بقية الأقسام المحفوظة كـ Stubs مستقرة وغير معطلة
+        elif reaction_type == "Гетерогенный катализ":
+            st.info("Раздел 'Гетерогенный катализ' успешно сохранен и готов к расширению алгоритмов.")
+        elif reaction_type == "Ферментативные реакции":
+            st.info("Раздел 'Ферментативные реакции' успешно сохранен и готов к расширению алгоритмов.")
 
 
 if __name__ == "__main__":

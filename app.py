@@ -27,7 +27,7 @@ st.set_page_config(
 )
 
 # =============================================================================
-# CSS -- التحديث الشامل للأحجام وتنسيق الألوان
+# CSS -- Тформирование интерфейса и стилей
 # =============================================================================
 st.markdown("""
 <style>
@@ -41,7 +41,7 @@ st.markdown("""
     color: #1e293b !important;
 }
 
-/* 2) استهدف القوائم وحقول الإدخال والكبسولات */
+/* 2) استهدف القوائم وحقول الإدخل والكبسولات */
 div[data-baseweb="select"], 
 div[data-baseweb="popover"], 
 div[role="listbox"], 
@@ -120,7 +120,6 @@ html, body, p, span, label, th, td, .stMarkdown, .stRadio label, input, select, 
     text-align: center;
 }
 
-/* حل جذري: إجبار أي عنصر أو نص داخلي للعنوان على حجم 3.5rem واللون الأبيض */
 .main-header-title,
 .main-header-title * {
     color: #ffffff !important;
@@ -271,7 +270,7 @@ section[data-testid="stSidebar"] { background-color: #ffffff !important; }
 """, unsafe_allow_html=True)
 
 # =============================================================================
-# دوال مساعدة عامة وتنسيق المخططات البيانية
+# Общие вспомогательные функции
 # =============================================================================
 def apply_axis_style(ax):
     ax.xaxis.set_major_locator(MaxNLocator(5))
@@ -409,7 +408,7 @@ def input_method_choice(key_prefix: str) -> str:
     )
 
 # =============================================================================
-# قسم 1: الفوتوكاتاليز (لم يتم لمسه)
+# РАЗДЕЛ 1: Фотокаталитические реакции (НЕ ИЗМЕНЯЛОСЬ)
 # =============================================================================
 def render_photocatalysis():
     sidebar_params(
@@ -540,7 +539,7 @@ def render_photocatalysis():
         st.error(f"❌ Ошибка моделирования: {str(e)}")
 
 # =============================================================================
-# قسم 2: التحفيز المتجانس (لم يتم لمسه)
+# РАЗДЕЛ 2: Гомогенный катализ (НЕ ИЗМЕНЯЛОСЬ)
 # =============================================================================
 HOMO_MODEL_INFO = {
     "Power-law (степенной закон)": {
@@ -760,8 +759,9 @@ def render_homogeneous():
 
         except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
 
+
 # =============================================================================
-# قسم 3: التحفيز غير المتجانس (Гетерогенный катализ)
+# РАЗДЕЛ 3: Гетерогенный катализ (МОДИФИЦИРОВАНО: С КНОПКОЙ СРАВНЕНИЯ И С НУЛЯ)
 # =============================================================================
 def render_heterogeneous():
     sidebar_params(
@@ -782,12 +782,9 @@ def render_heterogeneous():
             except Exception as e:
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
     else:
-        # Универсальные тестовые данные для каталитических процессов
-        default_data = pd.DataFrame({
-            'C': [0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
-            'r': [0.02, 0.07, 0.11, 0.15, 0.19, 0.21]
-        })
-        st.markdown("**Заполните экспериментальные данные (C и r):**")
+        # Без предустановленных жестких данных (Чистая пустая таблица)
+        default_data = pd.DataFrame({'C': [0.0], 'r': [0.0]})
+        st.markdown("**Заполните экспериментальные данные (C и r) с нуля:**")
         het_df = st.data_editor(default_data, use_container_width=True, num_rows="dynamic", key="hetero_manual_ed")
 
     if het_df is None or het_df.empty:
@@ -806,11 +803,19 @@ def render_heterogeneous():
     C_data, r_data = C_data[mask], r_data[mask]
 
     if len(C_data) < 2:
-        st.warning("⚠️ Недостаточно валидных точек данных для аппроксимации (требуется как минимум 2 точки).")
+        st.warning("⚠️ Ожидание ввода валидных экспериментальных данных (Минимум 2 точки с положительными значениями С и r для расчета).")
         return
 
+    # Панель выбора модели / Кнопка сравнения
+    st.markdown("### ⚙️ Выберите режим отображения и кинетическую модель:")
+    het_mode = st.radio(
+        "Режим анализа гетерогенного катализа:",
+        ["Langmuir-Hinshelwood", "Eley-Rideal", "📊 Сравнение моделей"],
+        index=2, horizontal=True, key="het_mode_select"
+    )
+
     try:
-        # 1. Модель Ленгмюра-Хиншелвуда: r = (k * K * C) / (1 + K * C)
+        # 1. Модель Ленгмюра-Хиншелвуда
         def lh_model(C, k, K):
             return (k * K * C) / (1.0 + K * C)
 
@@ -820,7 +825,7 @@ def render_heterogeneous():
         r2_lh, _ = calculate_metrics(r_data, r_pred_lh)
         rmse_lh = np.sqrt(np.mean((r_data - r_pred_lh) ** 2))
 
-        # 2. Модель Или-Ридила: r = k * theta * C
+        # 2. Модель Или-Ридила
         def er_model(C, k, theta):
             return k * theta * C
 
@@ -831,19 +836,38 @@ def render_heterogeneous():
         rmse_er = np.sqrt(np.mean((r_data - r_pred_er) ** 2))
 
         st.markdown(section_header("sh-results", "📋", "Результаты кинетического анализа"), unsafe_allow_html=True)
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            st.markdown(f'<div class="model-card mc-pfo"><h3>1. Langmuir-Hinshelwood</h3><p><strong>k (константа скорости):</strong> {k_lh:.4f}</p><p><strong>K (константа адсорбции):</strong> {K_lh:.4f}</p><p><strong>R²:</strong> {r2_lh:.4f}</p><p><strong>RMSE:</strong> {rmse_lh:.5f}</p></div>', unsafe_allow_html=True)
-        with col_m2:
-            st.markdown(f'<div class="model-card mc-pso"><h3>2. Eley-Rideal</h3><p><strong>k (константа скорости):</strong> {k_er:.4f}</p><p><strong>θ (степень заполнения):</strong> {theta_er:.4f}</p><p><strong>R²:</strong> {r2_er:.4f}</p><p><strong>RMSE:</strong> {rmse_er:.5f}</p></div>', unsafe_allow_html=True)
+        
+        # Отображение карточек результатов на основе выбранного режима
+        if het_mode == "Langmuir-Hinshelwood":
+            st.markdown(f'<div class="model-card mc-pfo"><h3>Langmuir-Hinshelwood</h3><p><strong>k (константа скорости):</strong> {k_lh:.4f}</p><p><strong>K (константа адсорбции):</strong> {K_lh:.4f}</p><p><strong>R²:</strong> {r2_lh:.4f}</p><p><strong>RMSE:</strong> {rmse_lh:.5f}</p></div>', unsafe_allow_html=True)
+        elif het_mode == "Eley-Rideal":
+            st.markdown(f'<div class="model-card mc-pso"><h3>Eley-Rideal</h3><p><strong>k (константа скорости):</strong> {k_er:.4f}</p><p><strong>θ (степень заполнения):</strong> {theta_er:.4f}</p><p><strong>R²:</strong> {r2_er:.4f}</p><p><strong>RMSE:</strong> {rmse_er:.5f}</p></div>', unsafe_allow_html=True)
+        else: # Сравнение моделей
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.markdown(f'<div class="model-card mc-pfo"><h3>1. Langmuir-Hinshelwood</h3><p><strong>k (константа скорости):</strong> {k_lh:.4f}</p><p><strong>K (константа адсорбции):</strong> {K_lh:.4f}</p><p><strong>R²:</strong> {r2_lh:.4f}</p><p><strong>RMSE:</strong> {rmse_lh:.5f}</p></div>', unsafe_allow_html=True)
+            with col_m2:
+                st.markdown(f'<div class="model-card mc-pso"><h3>2. Eley-Rideal</h3><p><strong>k (константа скорости):</strong> {k_er:.4f}</p><p><strong>θ (степень заполнения):</strong> {theta_er:.4f}</p><p><strong>R²:</strong> {r2_er:.4f}</p><p><strong>RMSE:</strong> {rmse_er:.5f}</p></div>', unsafe_allow_html=True)
+            
+            # Интеллектуальное автоматическое заключение сравнения
+            better_model = "Langmuir-Hinshelwood" if r2_lh > r2_er else "Eley-Rideal"
+            st.markdown(f"""
+            <div class="highlight-success">
+            <strong>🤖 Сравнительный анализ эффективности:</strong><br>
+            На основе коэффициента детерминации (R²) и среднеквадратичной ошибки (RMSE) модель <strong>{better_model}</strong> является наиболее адекватной для описания данного процесса. Она обладает более высокой точностью аппроксимации и обеспечивает наилучшее соответствие экспериментальным точкам, что указывает на преобладание данного механизма в исследуемых условиях.
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.markdown(section_header("sh-viz", "📊", "Графическое сравнение кинетических моделей"), unsafe_allow_html=True)
+        st.markdown(section_header("sh-viz", "📊", "Графическое представление кинетики"), unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5.5, 3.2))
         ax.scatter(C_data, r_data, color='#ef4444', label='Эксперимент (Данные)', s=35, zorder=3)
         
         C_fine = np.linspace(0.001, max(C_data) * 1.1, 300)
-        ax.plot(C_fine, lh_model(C_fine, k_lh, K_lh), color='#2563eb', linestyle='-', linewidth=2, label='Langmuir-Hinshelwood')
-        ax.plot(C_fine, er_model(C_fine, k_er, theta_er), color='#16a34a', linestyle='--', linewidth=2, label='Eley-Rideal')
+        
+        if het_mode in ["Langmuir-Hinshelwood", "📊 Сравнение моделей"]:
+            ax.plot(C_fine, lh_model(C_fine, k_lh, K_lh), color='#2563eb', linestyle='-', linewidth=2, label='Langmuir-Hinshelwood')
+        if het_mode in ["Eley-Rideal", "📊 Сравнение моделей"]:
+            ax.plot(C_fine, er_model(C_fine, k_er, theta_er), color='#16a34a', linestyle='--', linewidth=2, label='Eley-Rideal')
         
         ax.set_xlabel('Концентрация реагента (C)', fontsize=9.5)
         ax.set_ylabel('Скорость реакции (r)', fontsize=9.5)
@@ -862,7 +886,7 @@ def render_heterogeneous():
             'RMSE': [float(rmse_lh), float(rmse_er)]
         })
         
-        st.markdown(section_header("sh-download", "📥", "Экспорт аналитических отчетов"), unsafe_allow_html=True)
+        st.markdown(section_header("sh-download", "📥", "Экспорт отчетов"), unsafe_allow_html=True)
         d_col1, d_col2 = st.columns(2)
         with d_col1:
             st.download_button("📊 Скачать таблицу параметров (Excel)", data=convert_df_to_excel(res_summary), file_name="heterogeneous_catalysis_results.xlsx", use_container_width=True, key="dl_excel_het")
@@ -870,13 +894,14 @@ def render_heterogeneous():
             png_b = BytesIO()
             fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
             png_b.seek(0)
-            st.download_button("🖼️ Скачать график аппроксимации (PNG)", data=png_b, file_name="heterogeneous_catalysis_plot.png", mime="image/png", use_container_width=True, key="dl_png_het")
+            st.download_button("🖼️ Скачать график (PNG)", data=png_b, file_name="heterogeneous_catalysis_plot.png", mime="image/png", use_container_width=True, key="dl_png_het")
 
     except Exception as e:
-        st.error(f"❌ Критическая ошибка расчета кинетики: {str(e)}")
+        st.error(f"❌ Ошибка расчета кинетики: {str(e)}")
+
 
 # =============================================================================
-# قسم 4: التفاعلات الإنزيمية (Ферментативные реакции)
+# РАЗДЕЛ 4: Ферментативные реакции (МОДИФИЦИРОВАНО: С КНОПКОЙ СРАВНЕНИЯ И С НУЛЯ)
 # =============================================================================
 def render_enzymatic():
     sidebar_params(
@@ -897,12 +922,9 @@ def render_enzymatic():
             except Exception as e:
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
     else:
-        # Универсальные тестовые данные для ферментативной кинетики
-        default_data = pd.DataFrame({
-            '[S]': [0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
-            'v': [1.2, 2.1, 3.2, 4.5, 5.1, 5.4]
-        })
-        st.markdown("**Заполните данные кинетики ферментов ([S] и v):**")
+        # Без предустановленных жестких данных (Чистая пустая таблица)
+        default_data = pd.DataFrame({'[S]': [0.0], 'v': [0.0]})
+        st.markdown("**Заполните данные ферментативного процесса ([S] и v) с нуля:**")
         enz_df = st.data_editor(default_data, use_container_width=True, num_rows="dynamic", key="enz_manual_ed")
 
     if enz_df is None or enz_df.empty:
@@ -921,11 +943,19 @@ def render_enzymatic():
     S_data, v_data = S_data[mask], v_data[mask]
 
     if len(S_data) < 3:
-        st.warning("⚠️ Недостаточно точек для полной идентификации параметров модели Хилла (требуется не менее 3 точек).")
+        st.warning("⚠️ Ожидание ввода валидных экспериментальных данных (Минимум 3 точки с положительными значениями [S] и v для аппроксимации модели Хилла).")
         return
 
+    # Панель выбора модели / Кнопка сравнения
+    st.markdown("### ⚙️ Выберите режим отображения и кинетическую модель:")
+    enz_mode = st.radio(
+        "Режим анализа ферментативной кинетики:",
+        ["Michaelis-Menten", "Модель Хилла (Hill Model)", "📊 Сравнение моделей"],
+        index=2, horizontal=True, key="enz_mode_select"
+    )
+
     try:
-        # 1. Модель Михаэлиса-Ментен: v = (Vmax * S) / (Km + S)
+        # 1. Модель Михаэлиса-Ментен
         def mm_model(S, Vmax, Km):
             return (Vmax * S) / (Km + S)
 
@@ -935,7 +965,7 @@ def render_enzymatic():
         r2_mm, _ = calculate_metrics(v_data, v_pred_mm)
         rmse_mm = np.sqrt(np.mean((v_data - v_pred_mm) ** 2))
 
-        # 2. Модель Хилла: v = (Vmax * S^n) / (K05^n + S^n)
+        # 2. Модель Хилла
         def hill_model(S, Vmax, K05, n):
             return (Vmax * (S ** n)) / ((K05 ** n) + (S ** n))
 
@@ -945,32 +975,52 @@ def render_enzymatic():
         r2_hill, _ = calculate_metrics(v_data, v_pred_hl)
         rmse_hill = np.sqrt(np.mean((v_data - v_pred_hl) ** 2))
 
+        st.markdown(section_header("sh-results", "📋", "Кинетические параметры реакции"), unsafe_allow_html=True)
+        
+        # Определение типа кооперативности
         if n_hl > 1.05:
-            coop_status = "Положительная кооперативность (n > 1)"
+            coop_status = "Положительная аллостерическая кооперативность (n > 1)"
             coop_color = "highlight-success"
         elif n_hl < 0.95:
-            coop_status = "Отрицательная кооперативность (n < 1)"
+            coop_status = "Отрицательная аллостерическая кооперативность (n < 1)"
             coop_color = "mb-rose"
         else:
-            coop_status = "Отсутствие кооперативности (n ≈ 1, Кинетика Михаэлиса-Ментен)"
+            coop_status = "Отсутствие кооперативности (n ≈ 1, классическое насыщение)"
             coop_color = "mb-blue"
 
-        st.markdown(section_header("sh-results", "📋", "Кинетические параметры ферментативной реакции"), unsafe_allow_html=True)
         st.markdown(f'<div class="{coop_color}" style="padding:0.8rem; margin-bottom:1rem; border-radius:10px; font-weight:bold; text-align:center;">🧬 Характер связывания субстрата: {coop_status}</div>', unsafe_allow_html=True)
-        
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            st.markdown(f'<div class="model-card mc-pfo"><h3>1. Michaelis-Menten</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_mm:.4f}</p><p><strong>Km (константа Михаэлиса):</strong> {Km_mm:.4f}</p><p><strong>R²:</strong> {r2_mm:.4f}</p><p><strong>RMSE:</strong> {rmse_mm:.5f}</p></div>', unsafe_allow_html=True)
-        with col_m2:
-            st.markdown(f'<div class="model-card mc-pso"><h3>2. Hill Model</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_hl:.4f}</p><p><strong>K₀.₅ (полунасыщение):</strong> {K05_hl:.4f}</p><p><strong>n (коэффициент Хилла):</strong> {n_hl:.4f}</p><p><strong>R²:</strong> {r2_hill:.4f}</p><p><strong>RMSE:</strong> {rmse_hill:.5f}</p></div>', unsafe_allow_html=True)
 
-        st.markdown(section_header("sh-viz", "📊", "Графики кинетических кривых ферментов"), unsafe_allow_html=True)
+        # Вывод карточек по выбору режима
+        if enz_mode == "Michaelis-Menten":
+            st.markdown(f'<div class="model-card mc-pfo"><h3>Michaelis-Menten</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_mm:.4f}</p><p><strong>Km (константа Михаэлиса):</strong> {Km_mm:.4f}</p><p><strong>R²:</strong> {r2_mm:.4f}</p><p><strong>RMSE:</strong> {rmse_mm:.5f}</p></div>', unsafe_allow_html=True)
+        elif enz_mode == "Модель Хилла (Hill Model)":
+            st.markdown(f'<div class="model-card mc-pso"><h3>Hill Model</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_hl:.4f}</p><p><strong>K₀.₅ (полунасыщение):</strong> {K05_hl:.4f}</p><p><strong>n (коэффициент Хилла):</strong> {n_hl:.4f}</p><p><strong>R²:</strong> {r2_hill:.4f}</p><p><strong>RMSE:</strong> {rmse_hill:.5f}</p></div>', unsafe_allow_html=True)
+        else: # Сравнение моделей
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.markdown(f'<div class="model-card mc-pfo"><h3>1. Michaelis-Menten</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_mm:.4f}</p><p><strong>Km (константа Михаэлиса):</strong> {Km_mm:.4f}</p><p><strong>R²:</strong> {r2_mm:.4f}</p><p><strong>RMSE:</strong> {rmse_mm:.5f}</p></div>', unsafe_allow_html=True)
+            with col_m2:
+                st.markdown(f'<div class="model-card mc-pso"><h3>2. Hill Model</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_hl:.4f}</p><p><strong>K₀.₅ (полунасыщение):</strong> {K05_hl:.4f}</p><p><strong>n (коэффициент Хилла):</strong> {n_hl:.4f}</p><p><strong>R²:</strong> {r2_hill:.4f}</p><p><strong>RMSE:</strong> {rmse_hill:.5f}</p></div>', unsafe_allow_html=True)
+            
+            better_enz = "Модель Хилла (Hill Model)" if r2_hill > (r2_mm + 0.005) and not (0.95 <= n_hl <= 1.05) else "Michaelis-Menten"
+            st.markdown(f"""
+            <div class="highlight-success">
+            <strong>🤖 Сравнительный анализ эффективности:</strong><br>
+            Сравнение математической адекватности показывает, что <strong>{better_enz}</strong> наиболее точно отражает профиль экспериментальных точек.
+            {" Модель Хилла имеет явное преимущество из-за сигмоидной формы зависимости, подтверждая аллостерический эффект." if better_enz == "Модель Хилла (Hill Model)" else " Процесс оптимально описывается классическим уравнением Михаэлиса-Ментен без усложнения модели дополнительными параметрами."}
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown(section_header("sh-viz", "📊", "Графики кинетических кривых"), unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5.5, 3.2))
         ax.scatter(S_data, v_data, color='#ef4444', label='Эксперимент', s=35, zorder=3)
         
         S_fine = np.linspace(0.001, max(S_data) * 1.15, 300)
-        ax.plot(S_fine, mm_model(S_fine, Vmax_mm, Km_mm), color='#2563eb', linestyle='-', linewidth=2, label='Michaelis-Menten')
-        ax.plot(S_fine, hill_model(S_fine, Vmax_hl, K05_hl, n_hl), color='#a855f7', linestyle='-.', linewidth=2, label='Hill Model')
+        
+        if enz_mode in ["Michaelis-Menten", "📊 Сравнение моделей"]:
+            ax.plot(S_fine, mm_model(S_fine, Vmax_mm, Km_mm), color='#2563eb', linestyle='-', linewidth=2, label='Michaelis-Menten')
+        if enz_mode in ["Модель Хилла (Hill Model)", "📊 Сравнение моделей"]:
+            ax.plot(S_fine, hill_model(S_fine, Vmax_hl, K05_hl, n_hl), color='#a855f7', linestyle='-.', linewidth=2, label='Hill Model')
         
         ax.set_xlabel('Концентрация субстрата [S]', fontsize=9.5)
         ax.set_ylabel('Начальная скорость (v)', fontsize=9.5)
@@ -999,8 +1049,9 @@ def render_enzymatic():
     except Exception as e:
         st.error(f"❌ Ошибка математической оптимизации: {str(e)}")
 
+
 # =============================================================================
-# MAIN ENTRYPOINT
+# ГЛАВНАЯ ТОЧКА ВХОДА
 # =============================================================================
 def main():
     st.markdown("""

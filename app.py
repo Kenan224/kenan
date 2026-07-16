@@ -403,9 +403,24 @@ def handle_file_upload(uploaded_file, key_prefix: str):
 def input_method_choice(key_prefix: str) -> str:
     return st.radio(
         "Способ ввода данных:",
-        ["📁 Загрузить файл", "✏️ Ввести данные вручную"],
+        ["📁 Загрузить файл", "✏️ Ввести данные вручную", "📷 Изображение (OCR)"],
         index=0, horizontal=True, key=f"input_method_{key_prefix}"
     )
+
+def render_ocr_placeholder(key_prefix: str):
+    """Displays UI elements for the OCR placeholder."""
+    uploaded_image = st.file_uploader(
+        "Выберите изображение таблицы", 
+        type=['png', 'jpg', 'jpeg'], 
+        key=f"ocr_upload_{key_prefix}"
+    )
+    if uploaded_image is not None:
+        st.image(uploaded_image, caption="Загруженное изображение", use_container_width=True)
+    
+    st.warning("""
+    🚧 **OCR находится в разработке.**  
+    В следующей версии программы изображение будет автоматически преобразовано в таблицу данных.
+    """)
 
 # =============================================================================
 # РАЗДЕЛ 1: Фотокаталитические реакции (НЕ ИЗМЕНЯЛОСЬ)
@@ -454,7 +469,7 @@ def render_photocatalysis():
                         df = edited_df.copy()
             except Exception as e:
                 st.error(f"❌ Ошибка: {str(e)}")
-    else:
+    elif method == "✏️ Ввести данные вручную":
         default_data = pd.DataFrame({'т, мин': [0.0], 'А': [0.0]})
         edited_data = st.data_editor(default_data, num_rows="dynamic", use_container_width=True, key="photo_manual_ed")
         if not edited_data.empty and 'А' in edited_data.columns and len(edited_data) > 0 and edited_data.iloc[0]['А'] > 0:
@@ -464,6 +479,8 @@ def render_photocatalysis():
                 valid_data['А/А0'] = valid_data['А'] / valid_data['А0']
                 df = valid_data.copy()
                 st.dataframe(df[['т, мин', 'А', 'А/А0']], use_container_width=True)
+    elif method == "📷 Изображение (OCR)":
+        render_ocr_placeholder("photo")
 
     if df is None or df.empty:
         return
@@ -573,7 +590,7 @@ def render_homogeneous():
                 h_df = handle_file_upload(uploaded_h_file, f"homo_{homo_model}")
             except Exception as e:
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
-    else:
+    elif method == "✏️ Ввести данные вручную":
         if homo_model == "Power-law (степенной закон)":
             empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=[[0.0, 1.0, 1.5, 0.05], [5.0, 0.8, 1.3, 0.035]])
         elif homo_model == "Arrhenius":
@@ -582,6 +599,8 @@ def render_homogeneous():
             empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'CC'], data=[[0.0, 1.0, 0.0, 0.0], [10.0, 0.5, 0.4, 0.1]])
         st.markdown("**Заполните таблицу данными:**")
         h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
+    elif method == "📷 Изображение (OCR)":
+        render_ocr_placeholder(f"homo_{homo_model}")
 
     if h_df is None or len(h_df) == 0:
         return
@@ -781,11 +800,13 @@ def render_heterogeneous():
                 het_df = handle_file_upload(uploaded_file, "hetero")
             except Exception as e:
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
-    else:
+    elif method == "✏️ Ввести данные вручную":
         # Без предустановленных жестких данных (Чистая пустая таблица)
         default_data = pd.DataFrame({'C': [0.0], 'r': [0.0]})
         st.markdown("**Заполните экспериментальные данные (C и r) с нуля:**")
         het_df = st.data_editor(default_data, use_container_width=True, num_rows="dynamic", key="hetero_manual_ed")
+    elif method == "📷 Изображение (OCR)":
+        render_ocr_placeholder("hetero")
 
     if het_df is None or het_df.empty:
         return
@@ -819,7 +840,7 @@ def render_heterogeneous():
         def lh_model(C, k, K):
             return (k * K * C) / (1.0 + K * C)
 
-        popt_lh, _ = curve_fit(lh_model, C_data, r_data, p0=[max(r_data), 1.0], bounds=(0, np.inf))
+        popt_lh, _ = curve_fit(lh_model, C_data, r_data, p0=[max(r_data), 1.0], bounds=(0, np.inf), maxfev=5000)
         k_lh, K_lh = popt_lh[0], popt_lh[1]
         r_pred_lh = lh_model(C_data, k_lh, K_lh)
         r2_lh, _ = calculate_metrics(r_data, r_pred_lh)
@@ -829,7 +850,7 @@ def render_heterogeneous():
         def er_model(C, k, theta):
             return k * theta * C
 
-        popt_er, _ = curve_fit(er_model, C_data, r_data, p0=[max(r_data)/max(C_data), 0.5], bounds=(0, [np.inf, 1.0]))
+        popt_er, _ = curve_fit(er_model, C_data, r_data, p0=[max(r_data)/max(C_data), 0.5], bounds=(0, [np.inf, 1.0]), maxfev=5000)
         k_er, theta_er = popt_er[0], popt_er[1]
         r_pred_er = er_model(C_data, k_er, theta_er)
         r2_er, _ = calculate_metrics(r_data, r_pred_er)
@@ -921,11 +942,13 @@ def render_enzymatic():
                 enz_df = handle_file_upload(uploaded_file, "enzymatic")
             except Exception as e:
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
-    else:
+    elif method == "✏️ Ввести данные вручную":
         # Без предустановленных жестких данных (Чистая пустая таблица)
         default_data = pd.DataFrame({'[S]': [0.0], 'v': [0.0]})
         st.markdown("**Заполните данные ферментативного процесса ([S] и v) с нуля:**")
         enz_df = st.data_editor(default_data, use_container_width=True, num_rows="dynamic", key="enz_manual_ed")
+    elif method == "📷 Изображение (OCR)":
+        render_ocr_placeholder("enzymatic")
 
     if enz_df is None or enz_df.empty:
         return
@@ -959,7 +982,7 @@ def render_enzymatic():
         def mm_model(S, Vmax, Km):
             return (Vmax * S) / (Km + S)
 
-        popt_mm, _ = curve_fit(mm_model, S_data, v_data, p0=[max(v_data), np.median(S_data)], bounds=(0, np.inf))
+        popt_mm, _ = curve_fit(mm_model, S_data, v_data, p0=[max(v_data), np.median(S_data)], bounds=(0, np.inf), maxfev=5000)
         Vmax_mm, Km_mm = popt_mm[0], popt_mm[1]
         v_pred_mm = mm_model(S_data, Vmax_mm, Km_mm)
         r2_mm, _ = calculate_metrics(v_data, v_pred_mm)
@@ -969,7 +992,7 @@ def render_enzymatic():
         def hill_model(S, Vmax, K05, n):
             return (Vmax * (S ** n)) / ((K05 ** n) + (S ** n))
 
-        popt_hill, _ = curve_fit(hill_model, S_data, v_data, p0=[max(v_data), np.median(S_data), 1.0], bounds=(0, [np.inf, np.inf, 10.0]))
+        popt_hill, _ = curve_fit(hill_model, S_data, v_data, p0=[max(v_data), np.median(S_data), 1.0], bounds=(0, [np.inf, np.inf, 10.0]), maxfev=5000)
         Vmax_hl, K05_hl, n_hl = popt_hill[0], popt_hill[1], popt_hill[2]
         v_pred_hl = hill_model(S_data, Vmax_hl, K05_hl, n_hl)
         r2_hill, _ = calculate_metrics(v_data, v_pred_hl)

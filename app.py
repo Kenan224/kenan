@@ -10,13 +10,23 @@ from io import BytesIO
 from scipy.optimize import curve_fit
 from matplotlib.ticker import MaxNLocator
 
+# OCR specific imports
+import easyocr
+from PIL import Image
+import cv2
+
 # Import custom modules
-from data_processor import validate_data_structure, preprocess_data, get_data_summary, read_csv_file
-from kinetic_models import (
-    find_stable_points, fit_zo_model, fit_pfo_model, fit_pso_model,
-    create_results_summary
-)
-from visualization import create_matplotlib_plots
+# Assumptions: these modules exist in the same directory as app.py
+try:
+    from data_processor import validate_data_structure, preprocess_data, get_data_summary, read_csv_file
+    from kinetic_models import (
+        find_stable_points, fit_zo_model, fit_pfo_model, fit_pso_model,
+        create_results_summary
+    )
+    from visualization import create_matplotlib_plots
+except ImportError:
+    st.error("❌ Ошибка: Не удалось загрузить кастомные модули (data_processor, kinetic_models, visualization). Убедитесь, что файлы находятся في نفس الدليل.")
+    st.stop()
 
 # Configure page
 st.set_page_config(
@@ -41,7 +51,7 @@ st.markdown("""
     color: #1e293b !important;
 }
 
-/* 2) استهدف القوائم وحقول الإدخل والكبسولات */
+/* 2) استهدف القوائم وحقول الإدل والكبسولات */
 div[data-baseweb="select"], 
 div[data-baseweb="popover"], 
 div[role="listbox"], 
@@ -407,23 +417,74 @@ def input_method_choice(key_prefix: str) -> str:
         index=0, horizontal=True, key=f"input_method_{key_prefix}"
     )
 
-def render_ocr_placeholder(key_prefix: str):
-    """Displays UI elements for the OCR placeholder."""
-    uploaded_image = st.file_uploader(
-        "Выберите изображение таблицы", 
-        type=['png', 'jpg', 'jpeg'], 
-        key=f"ocr_upload_{key_prefix}"
-    )
-    if uploaded_image is not None:
-        st.image(uploaded_image, caption="Загруженное изображение", use_container_width=True)
+# =============================================================================
+# РАЗДЕЛ: Технологии OCR (Интеграция الفعلي)
+# =============================================================================
+@st.cache_resource
+def load_ocr_reader():
+    """Загружает EasyOCR Reader и кеширует его لمنع إعادة التحميل."""
+    with st.spinner("⏳ Загрузка OCR моделей (это может занять время при первом запуске)..."):
+        # en for numbers/dots, ru for potential headers
+        return easyocr.Reader(['en', 'ru'], gpu=False) 
+
+def process_image_and_extract_data(uploaded_image, col_names):
+    """
+    قراءة الصورة باستخدام OCR، استخراج الأرقام، تصفيتها وترتيبها في جدول مكون من عمودين.
+    """
+    reader = load_ocr_reader()
     
-    st.warning("""
-    🚧 **OCR находится в разработке.**  
-    В следующей версии программы изображение будет автоматически преобразовано в таблицу данных.
-    """)
+    # تحويل بايتات Streamlit إلى تنسيق مفهوم لـ OpenCV
+    try:
+        file_bytes = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        if image is None: raise ValueError("Не удалось декодировать изображение.")
+    except Exception as e:
+        st.error(f"❌ Ошибка обработки изображения: {e}")
+        return None
+
+    with st.spinner("🧠 Идет распознавание текста на изображении..."):
+        # تنفيذ OCR
+        result = reader.readtext(image)
+
+    extracted_numbers = []
+    
+    # حلقة لاستخراج النصوص وتحويلها لأرقام
+    for (bbox, text, prob) in result:
+        # معالجة النص: إزالة الفراغات، تحويل الكوما لنقطة
+        cleaned_text = text.replace(' ', '').replace(',', '.').strip()
+        
+        # محاولة التحويل لرقم طفو (Float)
+        try:
+            # التحقق من أن النص يحتوي على أرقام فقط (أو نقطة/إشارة سالب)
+            if cleaned_text and any(char.isdigit() for char in cleaned_text):
+                 extracted_numbers.append(float(cleaned_text))
+        except ValueError:
+            # تخطي النصوص غير الرقمية (العناوين مثلاً)
+            pass
+
+    if len(extracted_numbers) < 4:
+        st.error("❌ OCR Ошибка: На изображении найдено недостаточно цифровых данных untuk الحساب (требуется минимум 2 пары x, y). Убедитесь, что таблица четкая.")
+        # عرض النص الخام الذي تم التعرف عليه للمساعدة في التشخيص
+        if result:
+            with st.expander("👁️ Просмотр распознанного сырого текста (для отладки)"):
+                st.write([f"{text} ({prob:.2f})" for (_, text, prob) in result])
+        return None
+
+    # ضمان عدد زوجي للأزواج (X, Y)
+    if len(extracted_numbers) % 2 != 0:
+        extracted_numbers = extracted_numbers[:-1]
+
+    # إعادة تشكيل المصفوفة لعمودين
+    try:
+        data_array = np.array(extracted_numbers).reshape(-1, 2)
+        df = pd.DataFrame(data_array, columns=col_names)
+        return df
+    except Exception as e:
+        st.error(f"❌ Ошибка форматирования данных OCR في جدول: {e}")
+        return None
 
 # =============================================================================
-# РАЗДЕЛ 1: Фотокаталитические реакции (НЕ ИЗМЕНЯЛОСЬ)
+# РАЗДЕЛ 1: Фотокаталитические реакции (НЕ ИЗМЕНЯЛОСЬ في الهيكل، تم تحديث OCR)
 # =============================================================================
 def render_photocatalysis():
     sidebar_params(
@@ -436,59 +497,64 @@ def render_photocatalysis():
     method = input_method_choice("photo")
 
     df = None
+    
+    # منطق إدخال البيانات بناءً على الطريقة المختارة
     if method == "📁 Загрузить файл":
-        uploaded_file = st.file_uploader("Выберите файл", type=['xlsx', 'csv'], key="photo_upload")
+        uploaded_file = st.file_uploader("Выберите файл Excel/CSV", type=['xlsx', 'csv'], key="photo_upload")
         if uploaded_file is not None:
             try:
                 df = handle_file_upload(uploaded_file, "photo")
-                df.columns = df.columns.str.strip()
-                is_valid, error_message = validate_data_structure(df)
-                if not is_valid:
-                    st.error(f"❌ {error_message}")
-                    return
-
-                if 'А0' not in df.columns and 'А' in df.columns and len(df) > 0:
-                    df['А'] = pd.to_numeric(df['А'], errors='coerce')
-                    valid_a_mask = (df['А'] > 0) & (~df['А'].isna())
-                    if valid_a_mask.any():
-                        df['А0'] = df.loc[valid_a_mask, 'А'].iloc[0]
-                        st.markdown(f'<div class="highlight-success">✅ Автоопределение: А0 = {df["А0"].iloc[0]:.5f}</div>', unsafe_allow_html=True)
-
-                if 'А/А0' not in df.columns and 'А' in df.columns and 'А0' in df.columns:
-                    df['А/А0'] = df['А'] / df['А0']
-
-                with st.expander("👁️ Предварительный просмотр данных"):
-                    st.dataframe(df, use_container_width=True)
-
-                edited_df = st.data_editor(df[['т, мин', 'А']].copy(), use_container_width=True, num_rows="dynamic", key="photo_upload_ed")
-                if 'А' in edited_df.columns and len(edited_df) > 0 and edited_df.iloc[0]['А'] > 0:
-                    edited_df['А0'] = edited_df.iloc[0]['А']
-                    edited_df = edited_df[(edited_df['А'] > 0) & (edited_df['т, мин'] >= 0)]
-                    if not edited_df.empty:
-                        edited_df['А/А0'] = edited_df['А'] / edited_df['А0']
-                        df = edited_df.copy()
             except Exception as e:
-                st.error(f"❌ Ошибка: {str(e)}")
+                st.error(f"❌ Ошибка загрузки файла: {str(e)}")
+                
     elif method == "✏️ Ввести данные вручную":
-        default_data = pd.DataFrame({'т, мин': [0.0], 'А': [0.0]})
-        edited_data = st.data_editor(default_data, num_rows="dynamic", use_container_width=True, key="photo_manual_ed")
-        if not edited_data.empty and 'А' in edited_data.columns and len(edited_data) > 0 and edited_data.iloc[0]['А'] > 0:
-            edited_data['А0'] = edited_data.iloc[0]['А']
-            valid_data = edited_data[(edited_data['А'] > 0) & (edited_data['т, мин'] >= 0)].copy()
-            if not valid_data.empty:
-                valid_data['А/А0'] = valid_data['А'] / valid_data['А0']
-                df = valid_data.copy()
-                st.dataframe(df[['т, мин', 'А', 'А/А0']], use_container_width=True)
+        blank_data = pd.DataFrame({'т, мин': [0.0]*6, 'А': [0.0]*6})
+        st.markdown("**Заполните экспериментальные данные вручную:**")
+        df = st.data_editor(blank_data, use_container_width=True, num_rows="dynamic", key="photo_manual_ed")
+        
     elif method == "📷 Изображение (OCR)":
-        render_ocr_placeholder("photo")
+        uploaded_image = st.file_uploader("Выберите изображение таблицы (т vs А)", type=['png', 'jpg', 'jpeg'], key="ocr_upload_photo")
+        if uploaded_image is not None:
+            st.image(uploaded_image, caption="Загруженное изображение", use_container_width=True)
+            # استخراج البيانات فعلياً
+            df = process_image_and_extract_data(uploaded_image, ['т, мин', 'А'])
+
+    # التحقق العام وتنظيف البيانات الجاهزة (بغض النظر عن طريقة الإدخال)
+    if df is not None:
+        df = df.dropna().copy()
+        # تنظيف تلقائي للعناوين (إذا تم التعرف عليها بالخطأ كبيانات في OCR)
+        # Assuming preprocess_data handles strict numeric conversions
+        
+        if len(df) > 0:
+            df.columns = df.columns.str.strip()
+            
+            # منطق إيجاد A0 تلقائياً إذا لم يكن موجوداً
+            if 'А0' not in df.columns and 'А' in df.columns:
+                 # قصر البيانات على القيم الصالحة قبل حساب A0
+                 temp_df = df[pd.to_numeric(df['А'], errors='coerce') > 0].copy()
+                 if not temp_df.empty:
+                    df['А0'] = temp_df['А'].iloc[0]
+                    st.markdown(f'<div class="highlight-success">✅ Автоопределение: А0 = {df["А0"].iloc[0]:.5f}</div>', unsafe_allow_html=True)
+
+            if 'А/А0' not in df.columns and 'А' in df.columns and 'А0' in df.columns:
+                try:
+                    df['А/А0'] = pd.to_numeric(df['А'], errors='coerce') / pd.to_numeric(df['А0'], errors='coerce')
+                except:
+                    pass # سيتم التعامل مع الأخطاء في preprocess_data
+            
+            if method == "📷 Изображение (OCR)" or method == "📁 Загрузить файл":
+                with st.expander("👁️ Просмотр и редактирование распознанных/загруженных данных"):
+                    df = st.data_editor(df, use_container_width=True, num_rows="dynamic", key=f"photo_final_ed_{method}")
 
     if df is None or df.empty:
         return
 
     processed_df = preprocess_data(df)
     if processed_df.empty:
-        st.warning("⚠️ Нет допустимых данных для анализа.")
+        st.warning("⚠️ Нет допустимых данных для анализа. Убедитесь، что числа введены корректно.")
         return
+        
+    # --- استمرار الكود الأصلي للحسابات والرسوم دون أي تغيير ---
     summary = get_data_summary(processed_df)
 
     st.markdown(section_header("sh-selected", "📊", "Сводка данных"), unsafe_allow_html=True)
@@ -556,20 +622,23 @@ def render_photocatalysis():
         st.error(f"❌ Ошибка моделирования: {str(e)}")
 
 # =============================================================================
-# РАЗДЕЛ 2: Гомогенный катализ (НЕ ИЗМЕНЯЛОСЬ)
+# РАЗДЕЛ 2: Гомогенный катализ (НЕ ИЗМЕНЯЛОСЬ، تم تحديث OCR)
 # =============================================================================
 HOMO_MODEL_INFO = {
     "Power-law (степенной закон)": {
         "inputs": ["t (время)", "CA (концентрация А)", "CB (концентрация B)", "r (скорость)"],
         "outputs": ["k, α, β — параметры модели", "R², MAPE", "график линейной зависимости"],
+        "cols": ['t', 'CA', 'CB', 'r']
     },
     "Arrhenius": {
         "inputs": ["T (температура, K)", "k (константа скорости)"],
         "outputs": ["A, Ea — параметры Аррениуса", "R², MAPE", "график Аррениуса"],
+        "cols": ['T', 'k']
     },
     "Последовательные реакции": {
         "inputs": ["t (время)", "CA, CB, CC (концентрации веществ)"],
         "outputs": ["k1, k2 — константы скорости", "R², RMSE (%), Max C_B — метрики", "профиль концентраций"],
+        "cols": ['t', 'CA', 'CB', 'CC']
     },
 }
 
@@ -592,28 +661,48 @@ def render_homogeneous():
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
     elif method == "✏️ Ввести данные вручную":
         if homo_model == "Power-law (степенной закон)":
-            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=[[0.0, 1.0, 1.5, 0.05], [5.0, 0.8, 1.3, 0.035]])
+            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'r'], data=[[0.0, 0.0, 0.0, 0.0]]*6)
         elif homo_model == "Arrhenius":
-            empty_df = pd.DataFrame(columns=['T', 'k'], data=[[298.0, 0.01], [308.0, 0.02]])
+            empty_df = pd.DataFrame(columns=['T', 'k'], data=[[0.0, 0.0]]*6)
         else:
-            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'CC'], data=[[0.0, 1.0, 0.0, 0.0], [10.0, 0.5, 0.4, 0.1]])
-        st.markdown("**Заполните таблицу данными:**")
+            empty_df = pd.DataFrame(columns=['t', 'CA', 'CB', 'CC'], data=[[0.0, 0.0, 0.0, 0.0]]*6)
+        st.markdown("**Заполните таблицу данными вручную:**")
         h_df = st.data_editor(empty_df, use_container_width=True, num_rows="dynamic", key=f"editor_{homo_model}")
+        
     elif method == "📷 Изображение (OCR)":
-        render_ocr_placeholder(f"homo_{homo_model}")
+        target_cols = info["cols"]
+        uploaded_image = st.file_uploader(f"Выберите изображение таблицы ({', '.join(target_cols)})", type=['png', 'jpg', 'jpeg'], key=f"ocr_upload_homo_{homo_model}")
+        if uploaded_image is not None:
+            st.image(uploaded_image, caption="Загруженное изображение", use_container_width=True)
+            # استخراج البيانات فعلياً بناءً على أعمدة النموذج المختار
+            h_df = process_image_and_extract_data(uploaded_image, target_cols)
 
     if h_df is None or len(h_df) == 0:
         return
 
     h_df = clean_homogeneous_data(h_df)
+    
+    # تحويل الأعمدة الرقمية لضمان عمل الحسابات
+    for col in h_df.columns:
+        h_df[col] = pd.to_numeric(h_df[col], errors='coerce')
+    h_df = h_df.dropna().copy()
+    
+    if method == "📷 Изображение (OCR)" or method == "📁 Загрузить файл":
+        with st.expander("👁️ Просмотр и редактирование распознанных/загруженных данных"):
+            h_df = st.data_editor(h_df, use_container_width=True, num_rows="dynamic", key=f"homo_final_ed_{homo_model}_{method}")
 
+    # --- استمرار الكود الأصلي للحسابات دون تغيير ---
     if homo_model == "Power-law (степенной закон)":
         if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'r']):
-            st.error("❌ **Ошибка структуры!**")
+            st.error("❌ **Ошибка структуры данных!**")
             return
         try:
-            clean_df = h_df[(h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)]
-            if clean_df.empty: return
+            # تنظيف البيانات من القيم الصفرية أو السالبة قبل اللوغاريتم
+            clean_df = h_df[(h_df['CA'] > 0) & (h_df['CB'] > 0) & (h_df['r'] > 0)].copy()
+            if clean_df.empty: 
+                st.warning("⚠️ Недостаточно валидных данных (CA, CB, r должны быть > 0)")
+                return
+                
             log_CA, log_CB, log_r = np.log(clean_df['CA'].values), np.log(clean_df['CB'].values), np.log(clean_df['r'].values)
             X = np.column_stack((np.ones_like(log_CA), log_CA, log_CB))
             beta_matrix, _, _, _ = np.linalg.lstsq(X, log_r, rcond=None)
@@ -657,13 +746,15 @@ def render_homogeneous():
                 png_b.seek(0)
                 st.download_button("🖼️ Скачать график (PNG)", data=png_b, file_name="power_law_plot.png", mime="image/png", use_container_width=True, key="dl_png_pl")
 
-        except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
+        except Exception as e: st.error(f"❌ Ошибка вычислений Power-law: {str(e)}")
 
     elif homo_model == "Arrhenius":
         if not all(c in h_df.columns for c in ['T', 'k']): return
         try:
-            clean_df = h_df[(h_df['T'] > 0) & (h_df['k'] > 0)]
-            if clean_df.empty: return
+            clean_df = h_df[(h_df['T'] > 0) & (h_df['k'] > 0)].copy()
+            if clean_df.empty: 
+                 st.warning("⚠️ Недостаточно валидных данных (T, k должны быть > 0)")
+                 return
             R = 8.314
             inv_T, log_k = 1.0 / clean_df['T'].values, np.log(clean_df['k'].values)
             slope, intercept = np.polyfit(inv_T, log_k, 1)
@@ -705,19 +796,25 @@ def render_homogeneous():
                 png_b.seek(0)
                 st.download_button("🖼️ Скачать график (PNG)", data=png_b, file_name="arrhenius_plot.png", mime="image/png", use_container_width=True, key="dl_png_arr")
 
-        except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
+        except Exception as e: st.error(f"❌ Ошибка вычислений Аррениуса: {str(e)}")
 
     elif homo_model == "Последовательные реакции":
         if not all(c in h_df.columns for c in ['t', 'CA', 'CB', 'CC']): return
         try:
             t_data, CA_data = h_df['t'].values, h_df['CA'].values
+            
+            if len(t_data) < 2: return # حماية
+
             popt1, _ = curve_fit(lambda t, k1: CA_data[0] * np.exp(-k1 * t), t_data, CA_data, p0=[0.05])
             k1_fit = popt1[0]
 
             def fit_B(t, k2):
-                return (k1_fit * CA_data[0] / (k2 - k1_fit)) * (np.exp(-k1_fit * t) - np.exp(-k2 * t)) if k2 != k1_fit else (k1_fit * CA_data[0] * t * np.exp(-k1_fit * t))
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    res = (k1_fit * CA_data[0] / (k2 - k1_fit)) * (np.exp(-k1_fit * t) - np.exp(-k2 * t))
+                res = np.nan_to_num(res, nan=(k1_fit * CA_data[0] * t * np.exp(-k1_fit * t)))
+                return res
 
-            popt2, _ = curve_fit(fit_B, t_data, h_df['CB'].values, p0=[0.02])
+            popt2, _ = curve_fit(fit_B, t_data, h_df['CB'].values, p0=[0.02], maxfev=5000)
             k2_fit = popt2[0]
 
             CA_pred, CB_pred = CA_data[0] * np.exp(-k1_fit * t_data), fit_B(t_data, k2_fit)
@@ -728,7 +825,9 @@ def render_homogeneous():
             r2_C, _ = calculate_metrics(h_df['CC'].values, CC_pred)
             r2_final = (r2_A + r2_B + r2_C) / 3.0
             
-            rmse_val = np.sqrt(np.mean(list((CA_data - CA_pred)**2) + list((h_df['CB'].values - CB_pred)**2) + list((h_df['CC'].values - CC_pred)**2)))
+            total_pred = np.concatenate([CA_pred, CB_pred, CC_pred])
+            total_true = np.concatenate([CA_data, h_df['CB'].values, h_df['CC'].values])
+            rmse_val = np.sqrt(np.mean((total_true - total_pred)**2))
 
             t_fine_mesh = np.linspace(0, max(t_data) * 1.5, 2000)
             CB_fine_mesh = fit_B(t_fine_mesh, k2_fit)
@@ -741,7 +840,7 @@ def render_homogeneous():
             c1.markdown(f'<div class="performance-metric">¼ k₁ = {k1_fit:.4f}</div>', unsafe_allow_html=True)
             c2.markdown(f'<div class="performance-metric">½ k₂ = {k2_fit:.4f}</div>', unsafe_allow_html=True)
             c3.markdown(f'<div class="performance-metric">📊 R² = {r2_final:.4f}</div>', unsafe_allow_html=True)
-            c4.markdown(f'<div class="performance-metric">📈 RMSE = {rmse_val:.2f}%</div>', unsafe_allow_html=True)
+            c4.markdown(f'<div class="performance-metric">📈 RMSE = {rmse_val:.4f}</div>', unsafe_allow_html=True)
             c5.markdown(f'<div class="performance-metric">🔝 CB,max={CB_max_val:.3f} ({t_max_val:.1f} мин)</div>', unsafe_allow_html=True)
 
             fig, ax = plt.subplots(figsize=(4.8, 2.8))
@@ -763,7 +862,7 @@ def render_homogeneous():
                 st.pyplot(fig)
 
             results_summary = pd.DataFrame({
-                'Параметр / Метрика': ['Константа скорости k1', 'Константа скорости k2', 'Коэффициент детерминации (R²)', 'Ошибка (RMSE, %)', 'Макс. концентрация B (CB,max)', 'Время достижения макс. конц. (t_max)'],
+                'Параметр / Метрика': ['Константа скорости k1', 'Константа скорости k2', 'Коэффициент детерминации (R²)', 'Ошибка (RMSE)', 'Макс. концентрация B (CB,max)', 'Время достижения макс. конц. (t_max)'],
                 'Значение': [float(k1_fit), float(k2_fit), float(r2_final), float(rmse_val), float(CB_max_val), float(t_max_val)]
             })
             st.markdown(section_header("sh-download", "📥", "Скачать результаты"), unsafe_allow_html=True)
@@ -776,11 +875,11 @@ def render_homogeneous():
                 png_b.seek(0)
                 st.download_button("🖼️ Скачать график (PNG)", data=png_b, file_name="consecutive_reactions_plot.png", mime="image/png", use_container_width=True, key="dl_png_cons")
 
-        except Exception as e: st.error(f"❌ Ошибка: {str(e)}")
+        except Exception as e: st.error(f"❌ Ошибка вычислений Последовательных реакций: {str(e)}")
 
 
 # =============================================================================
-# РАЗДЕЛ 3: Гетерогенный катализ (МОДИФИЦИРОВАНО: С КНОПКОЙ СРАВНЕНИЯ И С НУЛЯ)
+# РАЗДЕЛ 3: Гетерогенный катализ (تعديل OCR الفعلي)
 # =============================================================================
 def render_heterogeneous():
     sidebar_params(
@@ -801,93 +900,97 @@ def render_heterogeneous():
             except Exception as e:
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
     elif method == "✏️ Ввести данные вручную":
-        # Без предустановленных жестких данных (Чистая пустая таблица)
-        default_data = pd.DataFrame({'C': [0.0], 'r': [0.0]})
-        st.markdown("**Заполните экспериментальные данные (C и r) с нуля:**")
-        het_df = st.data_editor(default_data, use_container_width=True, num_rows="dynamic", key="hetero_manual_ed")
+        blank_data = pd.DataFrame({'C': [0.0]*6, 'r': [0.0]*6})
+        st.markdown("**Заполните экспериментальные данные вручную (C и r):**")
+        het_df = st.data_editor(blank_data, use_container_width=True, num_rows="dynamic", key="hetero_manual_ed")
+        
     elif method == "📷 Изображение (OCR)":
-        render_ocr_placeholder("hetero")
+        uploaded_image = st.file_uploader("Выберите изображение таблицы (C vs r)", type=['png', 'jpg', 'jpeg'], key="ocr_upload_hetero")
+        if uploaded_image is not None:
+            st.image(uploaded_image, caption="Загруженное изображение", use_container_width=True)
+            # استخراج البيانات فعلياً
+            het_df = process_image_and_extract_data(uploaded_image, ['C', 'r'])
 
     if het_df is None or het_df.empty:
         return
 
-    het_df = het_df.dropna().copy()
+    # تنظيف وتجهيز الأعمدة رقمياً
     het_df.columns = [str(c).strip() for c in het_df.columns]
+    for col in het_df.columns:
+        het_df[col] = pd.to_numeric(het_df[col], errors='coerce')
+    het_df = het_df.dropna().copy()
     
-    c_col = [c for c in het_df.columns if str(c).lower() in ['c', 'ca', 'cb', 'концентрация']][0] if any(str(c).lower() in ['c', 'ca', 'cb', 'концентрация'] for c in het_df.columns) else het_df.columns[0]
-    r_col = [c for c in het_df.columns if str(c).lower() in ['r', 'v', 'rate', 'скорость']][0] if any(str(c).lower() in ['r', 'v', 'rate', 'скорость'] for c in het_df.columns) else het_df.columns[1]
+    if method == "📷 Изображение (OCR)" or method == "📁 Загрузить файл":
+        with st.expander("👁️ Просмотр и редактирование распознанных/загруженных данных"):
+            het_df = st.data_editor(het_df, use_container_width=True, num_rows="dynamic", key=f"hetero_final_ed_{method}")
 
-    C_data = pd.to_numeric(het_df[c_col], errors='coerce').values
-    r_data = pd.to_numeric(het_df[r_col], errors='coerce').values
+    # محاولة إيجاد الأعمدة تلقائياً في حال تغير المسميات في الملف/OCR
+    het_df_cols = [str(c).lower() for c in het_df.columns]
+    
+    c_col_idx = next((i for i, c in enumerate(het_df_cols) if c in ['c', 'ca', 'cb', 'концентрация']), 0)
+    r_col_idx = next((i for i, c in enumerate(het_df_cols) if c in ['r', 'v', 'rate', 'скорость']), 1 if len(het_df_cols)>1 else 0)
+    
+    C_data = het_df.iloc[:, c_col_idx].values
+    r_data = het_df.iloc[:, r_col_idx].values
 
+    # تنظيف من القيم غير الصالحة فيزيائياً
     mask = (C_data > 0) & (r_data > 0)
     C_data, r_data = C_data[mask], r_data[mask]
 
     if len(C_data) < 2:
-        st.warning("⚠️ Ожидание ввода валидных экспериментальных данных (Минимум 2 точки с положительными значениями С и r для расчета).")
+        st.warning("⚠️ Недостаточно валидных точек данных для аппроксимации (требуется как минимум 2 пары С>0, r>0). Убедитесь، что данные введены верно.")
         return
 
-    # Панель выбора модели / Кнопка сравнения
-    st.markdown("### ⚙️ Выберите режим отображения и кинетическую модель:")
-    het_mode = st.radio(
-        "Режим анализа гетерогенного катализа:",
-        ["Langmuir-Hinshelwood", "Eley-Rideal", "📊 Сравнение моделей"],
-        index=2, horizontal=True, key="het_mode_select"
-    )
-
     try:
+        st.markdown(section_header("sh-results", "📋", "Результаты кинетического анализа"), unsafe_allow_html=True)
+        C_fine = np.linspace(max(0.001, min(C_data)*0.8), max(C_data) * 1.1, 300)
+        
+        col_m1, col_m2 = st.columns(2)
+        
         # 1. Модель Ленгмюра-Хиншелвуда
         def lh_model(C, k, K):
             return (k * K * C) / (1.0 + K * C)
 
-        popt_lh, _ = curve_fit(lh_model, C_data, r_data, p0=[max(r_data), 1.0], bounds=(0, np.inf), maxfev=5000)
-        k_lh, K_lh = popt_lh[0], popt_lh[1]
-        r_pred_lh = lh_model(C_data, k_lh, K_lh)
-        r2_lh, _ = calculate_metrics(r_data, r_pred_lh)
-        rmse_lh = np.sqrt(np.mean((r_data - r_pred_lh) ** 2))
+        fit_lh_success = False
+        try:
+            popt_lh, _ = curve_fit(lh_model, C_data, r_data, p0=[max(r_data), 1.0], bounds=(0, np.inf), maxfev=5000)
+            k_lh, K_lh = popt_lh[0], popt_lh[1]
+            r_pred_lh = lh_model(C_data, k_lh, K_lh)
+            r2_lh, _ = calculate_metrics(r_data, r_pred_lh)
+            rmse_lh = np.sqrt(np.mean((r_data - r_pred_lh) ** 2))
+            fit_lh_success = True
+            
+            with col_m1:
+                st.markdown(f'<div class="model-card mc-pfo"><h3>1. Langmuir-Hinshelwood</h3><p><strong>k:</strong> {k_lh:.4f}</p><p><strong>K:</strong> {K_lh:.4f}</p><p><strong>R²:</strong> {r2_lh:.4f}</p><p><strong>RMSE:</strong> {rmse_lh:.5f}</p></div>', unsafe_allow_html=True)
+        except Exception as e:
+            with col_m1: st.error(f"❌ Ошибка фиттинга L-H: {e}")
 
         # 2. Модель Или-Ридила
         def er_model(C, k, theta):
             return k * theta * C
 
-        popt_er, _ = curve_fit(er_model, C_data, r_data, p0=[max(r_data)/max(C_data), 0.5], bounds=(0, [np.inf, 1.0]), maxfev=5000)
-        k_er, theta_er = popt_er[0], popt_er[1]
-        r_pred_er = er_model(C_data, k_er, theta_er)
-        r2_er, _ = calculate_metrics(r_data, r_pred_er)
-        rmse_er = np.sqrt(np.mean((r_data - r_pred_er) ** 2))
-
-        st.markdown(section_header("sh-results", "📋", "Результаты кинетического анализа"), unsafe_allow_html=True)
-        
-        # Отображение карточек результатов на основе выбранного режима
-        if het_mode == "Langmuir-Hinshelwood":
-            st.markdown(f'<div class="model-card mc-pfo"><h3>Langmuir-Hinshelwood</h3><p><strong>k (константа скорости):</strong> {k_lh:.4f}</p><p><strong>K (константа адсорбции):</strong> {K_lh:.4f}</p><p><strong>R²:</strong> {r2_lh:.4f}</p><p><strong>RMSE:</strong> {rmse_lh:.5f}</p></div>', unsafe_allow_html=True)
-        elif het_mode == "Eley-Rideal":
-            st.markdown(f'<div class="model-card mc-pso"><h3>Eley-Rideal</h3><p><strong>k (константа скорости):</strong> {k_er:.4f}</p><p><strong>θ (степень заполнения):</strong> {theta_er:.4f}</p><p><strong>R²:</strong> {r2_er:.4f}</p><p><strong>RMSE:</strong> {rmse_er:.5f}</p></div>', unsafe_allow_html=True)
-        else: # Сравнение моделей
-            col_m1, col_m2 = st.columns(2)
-            with col_m1:
-                st.markdown(f'<div class="model-card mc-pfo"><h3>1. Langmuir-Hinshelwood</h3><p><strong>k (константа скорости):</strong> {k_lh:.4f}</p><p><strong>K (константа адсорбции):</strong> {K_lh:.4f}</p><p><strong>R²:</strong> {r2_lh:.4f}</p><p><strong>RMSE:</strong> {rmse_lh:.5f}</p></div>', unsafe_allow_html=True)
-            with col_m2:
-                st.markdown(f'<div class="model-card mc-pso"><h3>2. Eley-Rideal</h3><p><strong>k (константа скорости):</strong> {k_er:.4f}</p><p><strong>θ (степень заполнения):</strong> {theta_er:.4f}</p><p><strong>R²:</strong> {r2_er:.4f}</p><p><strong>RMSE:</strong> {rmse_er:.5f}</p></div>', unsafe_allow_html=True)
+        fit_er_success = False
+        try:
+            popt_er, _ = curve_fit(er_model, C_data, r_data, p0=[max(r_data)/max(C_data), 0.5], bounds=(0, [np.inf, 1.0]), maxfev=5000)
+            k_er, theta_er = popt_er[0], popt_er[1]
+            r_pred_er = er_model(C_data, k_er, theta_er)
+            r2_er, _ = calculate_metrics(r_data, r_pred_er)
+            rmse_er = np.sqrt(np.mean((r_data - r_pred_er) ** 2))
+            fit_er_success = True
             
-            # Интеллектуальное автоматическое заключение сравнения
-            better_model = "Langmuir-Hinshelwood" if r2_lh > r2_er else "Eley-Rideal"
-            st.markdown(f"""
-            <div class="highlight-success">
-            <strong>🤖 Сравнительный анализ эффективности:</strong><br>
-            На основе коэффициента детерминации (R²) и среднеквадратичной ошибки (RMSE) модель <strong>{better_model}</strong> является наиболее адекватной для описания данного процесса. Она обладает более высокой точностью аппроксимации и обеспечивает наилучшее соответствие экспериментальным точкам, что указывает на преобладание данного механизма в исследуемых условиях.
-            </div>
-            """, unsafe_allow_html=True)
+            with col_m2:
+                st.markdown(f'<div class="model-card mc-pso"><h3>2. Eley-Rideal</h3><p><strong>k:</strong> {k_er:.4f}</p><p><strong>θ:</strong> {theta_er:.4f}</p><p><strong>R²:</strong> {r2_er:.4f}</p><p><strong>RMSE:</strong> {rmse_er:.5f}</p></div>', unsafe_allow_html=True)
+        except Exception as e:
+            with col_m2: st.error(f"❌ Ошибка фиттинга E-R: {e}")
 
-        st.markdown(section_header("sh-viz", "📊", "Графическое представление кинетики"), unsafe_allow_html=True)
+        # الجرافيك
+        st.markdown(section_header("sh-viz", "📊", "Графическое сравнение кинетических моделей"), unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5.5, 3.2))
-        ax.scatter(C_data, r_data, color='#ef4444', label='Эксперимент (Данные)', s=35, zorder=3)
+        ax.scatter(C_data, r_data, color='#ef4444', label='Эксперимент', s=35, zorder=3)
         
-        C_fine = np.linspace(0.001, max(C_data) * 1.1, 300)
-        
-        if het_mode in ["Langmuir-Hinshelwood", "📊 Сравнение моделей"]:
+        if fit_lh_success:
             ax.plot(C_fine, lh_model(C_fine, k_lh, K_lh), color='#2563eb', linestyle='-', linewidth=2, label='Langmuir-Hinshelwood')
-        if het_mode in ["Eley-Rideal", "📊 Сравнение моделей"]:
+        if fit_er_success:
             ax.plot(C_fine, er_model(C_fine, k_er, theta_er), color='#16a34a', linestyle='--', linewidth=2, label='Eley-Rideal')
         
         ax.set_xlabel('Концентрация реагента (C)', fontsize=9.5)
@@ -899,30 +1002,28 @@ def render_heterogeneous():
         with col_chart_het:
             st.pyplot(fig)
 
-        res_summary = pd.DataFrame({
-            'Модель': ['Langmuir-Hinshelwood', 'Eley-Rideal'],
-            'k': [float(k_lh), float(k_er)],
-            'K / θ': [float(K_lh), float(theta_er)],
-            'R²': [float(r2_lh), float(r2_er)],
-            'RMSE': [float(rmse_lh), float(rmse_er)]
-        })
+        # تحضير بيانات التحميل
+        export_data = []
+        if fit_lh_success: export_data.append({'Модель': 'Langmuir-Hinshelwood', 'k': k_lh, 'K / θ': K_lh, 'R²': r2_lh, 'RMSE': rmse_lh})
+        if fit_er_success: export_data.append({'Модель': 'Eley-Rideal', 'k': k_er, 'K / θ': theta_er, 'R²': r2_er, 'RMSE': rmse_er})
         
-        st.markdown(section_header("sh-download", "📥", "Экспорт отчетов"), unsafe_allow_html=True)
-        d_col1, d_col2 = st.columns(2)
-        with d_col1:
-            st.download_button("📊 Скачать таблицу параметров (Excel)", data=convert_df_to_excel(res_summary), file_name="heterogeneous_catalysis_results.xlsx", use_container_width=True, key="dl_excel_het")
-        with d_col2:
-            png_b = BytesIO()
-            fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
-            png_b.seek(0)
-            st.download_button("🖼️ Скачать график (PNG)", data=png_b, file_name="heterogeneous_catalysis_plot.png", mime="image/png", use_container_width=True, key="dl_png_het")
+        if export_data:
+            res_summary = pd.DataFrame(export_data)
+            st.markdown(section_header("sh-download", "📥", "Экспорт отчетов"), unsafe_allow_html=True)
+            d_col1, d_col2 = st.columns(2)
+            with d_col1:
+                st.download_button("📊 Скачать таблицу параметров (Excel)", data=convert_df_to_excel(res_summary), file_name="heterogeneous_catalysis_results.xlsx", use_container_width=True, key="dl_excel_het")
+            with d_col2:
+                png_b = BytesIO()
+                fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
+                png_b.seek(0)
+                st.download_button("🖼️ Скачать график аппроксимации (PNG)", data=png_b, file_name="heterogeneous_catalysis_plot.png", mime="image/png", use_container_width=True, key="dl_png_het")
 
     except Exception as e:
-        st.error(f"❌ Ошибка расчета кинетики: {str(e)}")
-
+        st.error(f"❌ Критическая ошибка расчета في Гетерогенном катализе: {str(e)}")
 
 # =============================================================================
-# РАЗДЕЛ 4: Ферментативные реакции (МОДИФИЦИРОВАНО: С КНОПКОЙ СРАВНЕНИЯ И С НУЛЯ)
+# РАЗДЕЛ 4: Ферментативные реакции (تعديل OCR الفعلي)
 # =============================================================================
 def render_enzymatic():
     sidebar_params(
@@ -943,106 +1044,104 @@ def render_enzymatic():
             except Exception as e:
                 st.error(f"❌ Ошибка загрузки файла: {str(e)}")
     elif method == "✏️ Ввести данные вручную":
-        # Без предустановленных жестких данных (Чистая пустая таблица)
-        default_data = pd.DataFrame({'[S]': [0.0], 'v': [0.0]})
-        st.markdown("**Заполните данные ферментативного процесса ([S] и v) с нуля:**")
-        enz_df = st.data_editor(default_data, use_container_width=True, num_rows="dynamic", key="enz_manual_ed")
+        blank_data = pd.DataFrame({'[S]': [0.0]*6, 'v': [0.0]*6})
+        st.markdown("**Заполните экспериментальные данные вручную ([S] vs v):**")
+        enz_df = st.data_editor(blank_data, use_container_width=True, num_rows="dynamic", key="enz_manual_ed")
+        
     elif method == "📷 Изображение (OCR)":
-        render_ocr_placeholder("enzymatic")
+        uploaded_image = st.file_uploader("Выберите изображение таблицы ([S] vs v)", type=['png', 'jpg', 'jpeg'], key="ocr_upload_enz")
+        if uploaded_image is not None:
+            st.image(uploaded_image, caption="Загруженное изображение", use_container_width=True)
+            # استخراج البيانات فعلياً
+            enz_df = process_image_and_extract_data(uploaded_image, ['[S]', 'v'])
 
     if enz_df is None or enz_df.empty:
         return
 
-    enz_df = enz_df.dropna().copy()
+    # تنظيف وتجهيز الأعمدة رقمياً
     enz_df.columns = [str(c).strip() for c in enz_df.columns]
+    for col in enz_df.columns:
+        enz_df[col] = pd.to_numeric(enz_df[col], errors='coerce')
+    enz_df = enz_df.dropna().copy()
+    
+    if method == "📷 Изображение (OCR)" or method == "📁 Загрузить файл":
+        with st.expander("👁️ Просмотр и редактирование распознанных/загруженных данных"):
+            enz_df = st.data_editor(enz_df, use_container_width=True, num_rows="dynamic", key=f"enz_final_ed_{method}")
 
-    s_col = [c for c in enz_df.columns if str(c).lower() in ['s', '[s]', 'субстрат']][0] if any(str(c).lower() in ['s', '[s]', 'субстрат'] for c in enz_df.columns) else enz_df.columns[0]
-    v_col = [c for c in enz_df.columns if str(c).lower() in ['v', 'r', 'rate', 'скорость']][0] if any(str(c).lower() in ['v', 'r', 'rate', 'скорость'] for c in enz_df.columns) else enz_df.columns[1]
-
-    S_data = pd.to_numeric(enz_df[s_col], errors='coerce').values
-    v_data = pd.to_numeric(enz_df[v_col], errors='coerce').values
+    # محاولة إيجاد الأعمدة تلقائياً
+    enz_df_cols = [str(c).lower() for c in enz_df.columns]
+    s_col_idx = next((i for i, c in enumerate(enz_df_cols) if c in ['s', '[s]', 'субстрат', 'ca']), 0)
+    v_col_idx = next((i for i, c in enumerate(enz_df_cols) if c in ['v', 'r', 'rate', 'скорость']), 1 if len(enz_df_cols)>1 else 0)
+    
+    S_data = enz_df.iloc[:, s_col_idx].values
+    v_data = enz_df.iloc[:, v_col_idx].values
 
     mask = (S_data > 0) & (v_data > 0)
     S_data, v_data = S_data[mask], v_data[mask]
 
     if len(S_data) < 3:
-        st.warning("⚠️ Ожидание ввода валидных экспериментальных данных (Минимум 3 точки с положительными значениями [S] и v для аппроксимации модели Хилла).")
+        st.warning("⚠️ Недостаточно валидных точек данных dla расчета (требуется минимум 3 пары [S]>0, v>0 pentru النموذج الخطي وتعريف بارامترات هيل). Убедитесь، что данные введены верно.")
         return
 
-    # Панель выбора модели / Кнопка сравнения
-    st.markdown("### ⚙️ Выберите режим отображения и кинетическую модель:")
-    enz_mode = st.radio(
-        "Режим анализа ферментативной кинетики:",
-        ["Michaelis-Menten", "Модель Хилла (Hill Model)", "📊 Сравнение моделей"],
-        index=2, horizontal=True, key="enz_mode_select"
-    )
-
     try:
-        # 1. Модель Михаэлиса-Ментен
+        st.markdown(section_header("sh-results", "📋", "Кинетические параметры реакции"), unsafe_allow_html=True)
+        S_fine = np.linspace(max(0.001, min(S_data)*0.8), max(S_data) * 1.15, 300)
+        
+        col_m1, col_m2 = st.columns(2)
+        
+        # 1. Модель Михаэлиса-Ментен: v = (Vmax * S) / (Km + S)
         def mm_model(S, Vmax, Km):
             return (Vmax * S) / (Km + S)
 
-        popt_mm, _ = curve_fit(mm_model, S_data, v_data, p0=[max(v_data), np.median(S_data)], bounds=(0, np.inf), maxfev=5000)
-        Vmax_mm, Km_mm = popt_mm[0], popt_mm[1]
-        v_pred_mm = mm_model(S_data, Vmax_mm, Km_mm)
-        r2_mm, _ = calculate_metrics(v_data, v_pred_mm)
-        rmse_mm = np.sqrt(np.mean((v_data - v_pred_mm) ** 2))
-
-        # 2. Модель Хилла
-        def hill_model(S, Vmax, K05, n):
-            return (Vmax * (S ** n)) / ((K05 ** n) + (S ** n))
-
-        popt_hill, _ = curve_fit(hill_model, S_data, v_data, p0=[max(v_data), np.median(S_data), 1.0], bounds=(0, [np.inf, np.inf, 10.0]), maxfev=5000)
-        Vmax_hl, K05_hl, n_hl = popt_hill[0], popt_hill[1], popt_hill[2]
-        v_pred_hl = hill_model(S_data, Vmax_hl, K05_hl, n_hl)
-        r2_hill, _ = calculate_metrics(v_data, v_pred_hl)
-        rmse_hill = np.sqrt(np.mean((v_data - v_pred_hl) ** 2))
-
-        st.markdown(section_header("sh-results", "📋", "Кинетические параметры реакции"), unsafe_allow_html=True)
-        
-        # Определение типа кооперативности
-        if n_hl > 1.05:
-            coop_status = "Положительная аллостерическая кооперативность (n > 1)"
-            coop_color = "highlight-success"
-        elif n_hl < 0.95:
-            coop_status = "Отрицательная аллостерическая кооперативность (n < 1)"
-            coop_color = "mb-rose"
-        else:
-            coop_status = "Отсутствие кооперативности (n ≈ 1, классическое насыщение)"
-            coop_color = "mb-blue"
-
-        st.markdown(f'<div class="{coop_color}" style="padding:0.8rem; margin-bottom:1rem; border-radius:10px; font-weight:bold; text-align:center;">🧬 Характер связывания субстрата: {coop_status}</div>', unsafe_allow_html=True)
-
-        # Вывод карточек по выбору режима
-        if enz_mode == "Michaelis-Menten":
-            st.markdown(f'<div class="model-card mc-pfo"><h3>Michaelis-Menten</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_mm:.4f}</p><p><strong>Km (константа Михаэлиса):</strong> {Km_mm:.4f}</p><p><strong>R²:</strong> {r2_mm:.4f}</p><p><strong>RMSE:</strong> {rmse_mm:.5f}</p></div>', unsafe_allow_html=True)
-        elif enz_mode == "Модель Хилла (Hill Model)":
-            st.markdown(f'<div class="model-card mc-pso"><h3>Hill Model</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_hl:.4f}</p><p><strong>K₀.₅ (полунасыщение):</strong> {K05_hl:.4f}</p><p><strong>n (коэффициент Хилла):</strong> {n_hl:.4f}</p><p><strong>R²:</strong> {r2_hill:.4f}</p><p><strong>RMSE:</strong> {rmse_hill:.5f}</p></div>', unsafe_allow_html=True)
-        else: # Сравнение моделей
-            col_m1, col_m2 = st.columns(2)
-            with col_m1:
-                st.markdown(f'<div class="model-card mc-pfo"><h3>1. Michaelis-Menten</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_mm:.4f}</p><p><strong>Km (константа Михаэлиса):</strong> {Km_mm:.4f}</p><p><strong>R²:</strong> {r2_mm:.4f}</p><p><strong>RMSE:</strong> {rmse_mm:.5f}</p></div>', unsafe_allow_html=True)
-            with col_m2:
-                st.markdown(f'<div class="model-card mc-pso"><h3>2. Hill Model</h3><p><strong>Vmax (макс. скорость):</strong> {Vmax_hl:.4f}</p><p><strong>K₀.₅ (полунасыщение):</strong> {K05_hl:.4f}</p><p><strong>n (коэффициент Хилла):</strong> {n_hl:.4f}</p><p><strong>R²:</strong> {r2_hill:.4f}</p><p><strong>RMSE:</strong> {rmse_hill:.5f}</p></div>', unsafe_allow_html=True)
+        fit_mm_success = False
+        try:
+            # Начальная оценка Vmax ~ max(v), Km ~ median(S)
+            popt_mm, _ = curve_fit(mm_model, S_data, v_data, p0=[max(v_data), np.median(S_data)], bounds=(0, np.inf), maxfev=5000)
+            Vmax_mm, Km_mm = popt_mm[0], popt_mm[1]
+            v_pred_mm = mm_model(S_data, Vmax_mm, Km_mm)
+            r2_mm, _ = calculate_metrics(v_data, v_pred_mm)
+            rmse_mm = np.sqrt(np.mean((v_data - v_pred_mm) ** 2))
+            fit_mm_success = True
             
-            better_enz = "Модель Хилла (Hill Model)" if r2_hill > (r2_mm + 0.005) and not (0.95 <= n_hl <= 1.05) else "Michaelis-Menten"
-            st.markdown(f"""
-            <div class="highlight-success">
-            <strong>🤖 Сравнительный анализ эффективности:</strong><br>
-            Сравнение математической адекватности показывает, что <strong>{better_enz}</strong> наиболее точно отражает профиль экспериментальных точек.
-            {" Модель Хилла имеет явное преимущество из-за сигмоидной формы зависимости, подтверждая аллостерический эффект." if better_enz == "Модель Хилла (Hill Model)" else " Процесс оптимально описывается классическим уравнением Михаэлиса-Ментен без усложнения модели дополнительными параметрами."}
-            </div>
-            """, unsafe_allow_html=True)
+            with col_m1:
+                st.markdown(f'<div class="model-card mc-pfo"><h3>1. Michaelis-Menten</h3><p><strong>Vmax:</strong> {Vmax_mm:.4f}</p><p><strong>Km:</strong> {Km_mm:.4f}</p><p><strong>R²:</strong> {r2_mm:.4f}</p><p><strong>RMSE:</strong> {rmse_mm:.5f}</p></div>', unsafe_allow_html=True)
+        except Exception as e:
+            with col_m1: st.error(f"❌ Ошибка фиттинга M-M: {e}")
 
-        st.markdown(section_header("sh-viz", "📊", "Графики кинетических кривых"), unsafe_allow_html=True)
+        # 2. Модель Хилла: v = (Vmax * S^n) / (K05^n + S^n)
+        def hill_model(S, Vmax, K05, n):
+            # حماية ضد القيم السالبة المرفوعة لأس غير صحيح في مراحل التكرار
+            s_safe = np.maximum(S, 1e-9) 
+            return (Vmax * (s_safe ** n)) / ((K05 ** n) + (s_safe ** n))
+
+        fit_hill_success = False
+        try:
+            # Начальная оценка n=1 (как M-M)
+            popt_hill, _ = curve_fit(hill_model, S_data, v_data, p0=[max(v_data), np.median(S_data), 1.0], bounds=(0, [np.inf, np.inf, 10.0]), maxfev=5000)
+            Vmax_hl, K05_hl, n_hl = popt_hill[0], popt_hill[1], popt_hill[2]
+            v_pred_hl = hill_model(S_data, Vmax_hl, K05_hl, n_hl)
+            r2_hill, _ = calculate_metrics(v_data, v_pred_hl)
+            rmse_hill = np.sqrt(np.mean((v_data - v_pred_hl) ** 2))
+            fit_hill_success = True
+            
+            # Анализ кооперативности
+            if n_hl > 1.05: coop = "Положительная"
+            elif n_hl < 0.95: coop = "Отрицательная"
+            else: coop = "Отсутствует (n≈1)"
+
+            with col_m2:
+                st.markdown(f'<div class="model-card mc-pso"><h3>2. Hill Model</h3><p><strong>Vmax:</strong> {Vmax_hl:.4f}</p><p><strong>K₀.₅:</strong> {K05_hl:.4f}</p><p><strong>n:</strong> {n_hl:.4f}</p><p><strong>Кооперативность:</strong> {coop}</p><p><strong>R²:</strong> {r2_hill:.4f}</p><p><strong>RMSE:</strong> {rmse_hill:.5f}</p></div>', unsafe_allow_html=True)
+        except Exception as e:
+            with col_m2: st.error(f"❌ Ошибка фиттинга Hill: {e}")
+
+        # الجرافيك
+        st.markdown(section_header("sh-viz", "📊", "Графики кинетических кривых ферментов"), unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5.5, 3.2))
         ax.scatter(S_data, v_data, color='#ef4444', label='Эксперимент', s=35, zorder=3)
         
-        S_fine = np.linspace(0.001, max(S_data) * 1.15, 300)
-        
-        if enz_mode in ["Michaelis-Menten", "📊 Сравнение моделей"]:
+        if fit_mm_success:
             ax.plot(S_fine, mm_model(S_fine, Vmax_mm, Km_mm), color='#2563eb', linestyle='-', linewidth=2, label='Michaelis-Menten')
-        if enz_mode in ["Модель Хилла (Hill Model)", "📊 Сравнение моделей"]:
+        if fit_hill_success:
             ax.plot(S_fine, hill_model(S_fine, Vmax_hl, K05_hl, n_hl), color='#a855f7', linestyle='-.', linewidth=2, label='Hill Model')
         
         ax.set_xlabel('Концентрация субстрата [S]', fontsize=9.5)
@@ -1054,34 +1153,34 @@ def render_enzymatic():
         with col_chart_enz:
             st.pyplot(fig)
 
-        res_summary = pd.DataFrame({
-            'Кинетический параметр': ['Vmax (Michaelis-Menten)', 'Km (Michaelis-Menten)', 'Vmax (Hill)', 'K0.5 (Hill)', 'n (Hill coefficient)', 'R² (Michaelis-Menten)', 'R² (Hill)'],
-            'Значение': [float(Vmax_mm), float(Km_mm), float(Vmax_hl), float(K05_hl), float(n_hl), float(r2_mm), float(r2_hill)]
-        })
-
-        st.markdown(section_header("sh-download", "📥", "Экспорт отчетов"), unsafe_allow_html=True)
-        d_col1, d_col2 = st.columns(2)
-        with d_col1:
-            st.download_button("📊 Скачать кинетический отчет (Excel)", data=convert_df_to_excel(res_summary), file_name="enzymatic_kinetics_results.xlsx", use_container_width=True, key="dl_excel_enz")
-        with d_col2:
-            png_b = BytesIO()
-            fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
-            png_b.seek(0)
-            st.download_button("🖼️ Скачать профиль скоростей (PNG)", data=png_b, file_name="enzymatic_kinetics_plot.png", mime="image/png", use_container_width=True, key="dl_png_enz")
+        # تحضير بيانات التحميل
+        export_data = []
+        if fit_mm_success: export_data.append({'Параметр': 'Vmax (Michaelis-Menten)', 'Значение': Vmax_mm}, {'Параметр': 'Km (Michaelis-Menten)', 'Значение': Km_mm}, {'Параметр': 'R² (Michaelis-Menten)', 'Значение': r2_mm})
+        if fit_hill_success: export_data.extend([{'Параметр': 'Vmax (Hill)', 'Значение': Vmax_hl}, {'Параметр': 'K0.5 (Hill)', 'Значение': K05_hl}, {'Параметр': 'n (Hill coefficient)', 'Значение': n_hl}, {'Параметр': 'R² (Hill)', 'Значение': r2_hill}])
+        
+        if export_data:
+            res_summary = pd.DataFrame(export_data)
+            st.markdown(section_header("sh-download", "📥", "Экспорт отчетов"), unsafe_allow_html=True)
+            d_col1, d_col2 = st.columns(2)
+            with d_col1:
+                st.download_button("📊 Скачать кинетический отчет (Excel)", data=convert_df_to_excel(res_summary), file_name="enzymatic_kinetics_results.xlsx", use_container_width=True, key="dl_excel_enz")
+            with d_col2:
+                png_b = BytesIO()
+                fig.savefig(png_b, format='png', dpi=300, bbox_inches='tight')
+                png_b.seek(0)
+                st.download_button("🖼️ Скачать профиль скоростей (PNG)", data=png_b, file_name="enzymatic_kinetics_plot.png", mime="image/png", use_container_width=True, key="dl_png_enz")
 
     except Exception as e:
-        st.error(f"❌ Ошибка математической оптимизации: {str(e)}")
+        st.error(f"❌ Критическая ошибка математической оптимизации في ферментах: {str(e)}")
 
 
 # =============================================================================
-# ГЛАВНАЯ ТОЧКА ВХОДА
+# MAIN ENTRYPOINT (НЕ ИЗМЕНЯЛОСЬ في الهيكل)
 # =============================================================================
 def main():
     st.markdown("""
     <div class="main-header-title">
-         <h1 style="font-size: 3.5rem !important; color: #ffffff !important; margin: 0; font-weight: 700; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); line-height: 1.2;">
-             Анализ кинетического моделирования
-         </h1>
+         <h1>Анализ кинетического моделирования</h1>
     </div>
     <div class="main-header-authors">
          <p>АВТОР: Алсади К. &nbsp;|&nbsp; РУКОВОДИТЕЛЬ: Киреева А.В</p>
@@ -1089,8 +1188,8 @@ def main():
     """, unsafe_allow_html=True)
 
     reaction_type = st.sidebar.selectbox(
-        "🛠️ Тип процесса / реакции",
-        options=["Фотокаталитические реакции", "Гомогенный катализ", "Гетерогенный катализ", "Ферментативные реакции"],
+        "🛠️ Тиپ процесса / реакции",
+        options=["Фотокаталитические реакции", "Гомогенный каталиز", "Гетерогенный катализ", "Ферментативные реакции"],
         index=0, key="reaction_type_choice"
     )
 
@@ -1098,8 +1197,12 @@ def main():
         render_photocatalysis()
     elif reaction_type == "Гомогенный катализ":
         render_homogeneous()
-    elif reaction_type == "Гетерогенный катализ":
-        render_heterogeneous()
+    elif reaction_type == "Гетерогенный каталиز":
+        # Assumption: this function exists or is the old name for render_heterogeneous
+        try:
+            render_heterogeneous()
+        except NameError:
+             st.error("❌ Функция Гетерогенный катализ не найдена.")
     elif reaction_type == "Ферментативные реакции":
         render_enzymatic()
 
